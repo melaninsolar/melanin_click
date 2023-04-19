@@ -6,3 +6,4 @@
 - [ ] Add user alert/warning ⚠️ on dependency's installation 
 - [ ] Add miner install notification/alert
 - [ ] Add guide for script usage
+- [ ] macOS cpu miner needs updates for Ventura
