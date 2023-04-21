@@ -12,3 +12,12 @@
 - [ ] Add Gui for the script
 - [ ] Display Terms & Conditions in a better way with zenity
 - [ ] Add Windows OS support
+
+
+### Running the script
+```
+$ git clone 
+$ chmod +x melaninclick.sh
+$ ./melaninclick.sh
+
+```
