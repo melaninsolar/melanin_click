@@ -6,6 +6,7 @@
 - [x] Add user alert/warning ⚠️ on dependency's installation 
 - [x] Add miner install notification/alert
 - [x] Add whive desktop shortcut for macOS/linux
+- [x] Disk space check
 - [ ] Add guide for script usage
 - [ ] macOS cpu miner needs updates for Ventura
 - [ ] Add Gui for the script
