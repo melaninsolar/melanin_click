@@ -16,7 +16,7 @@
 
 ### Running the script
 ```
-$ git clone 
+$ git clone https://github.com/melaninsolar/melaninclick.git
 $ chmod +x melaninclick.sh
 $ ./melaninclick.sh
 
