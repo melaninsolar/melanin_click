@@ -10,6 +10,14 @@ if [[ "$answer" != "y" ]]; then
     exit 1
 fi
 
+# Check available disk space
+disk_space=$(df -BG --output=avail / | awk 'NR==2 {print $1}' | sed 's/G//')
+if [[ "$disk_space" -lt "5" ]]; then
+    echo "You do not have enough disk space to install Whive miner."
+    echo "Please free up at least 5GB of disk space and try again."
+    exit 1
+fi
+
 # Determine OS type
 os_type=$(uname)
 
