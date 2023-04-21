@@ -10,4 +10,5 @@
 - [ ] Add guide for script usage
 - [ ] macOS cpu miner needs updates for Ventura
 - [ ] Add Gui for the script
-- [ ] Display Terms & Conditions in a better way
+- [ ] Display Terms & Conditions in a better way with zenity
+- [ ] Add Windows OS support
