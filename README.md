@@ -11,6 +11,7 @@
 - [x] macOS cpu miner needs updates for Ventura
 - [x] Add Gui for the script
 - [x] Display Terms & Conditions in a better way with zenity
+- [ ] Add Icon to MelaninClick
 - [ ] Add Windows OS support
 
 
