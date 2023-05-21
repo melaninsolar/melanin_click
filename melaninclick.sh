@@ -197,7 +197,7 @@ if [[ "$os_type" == "Linux" ]]; then
 [Desktop Entry]
 Name=Whive Miner
 Comment=Whive Miner
-Exec=gnome-terminal --working-directory=$HOME/whive-cpuminer-mc-yespower -e './minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS.w1 -t 1'
+Exec=gnome-terminal --working-directory=$HOME/whive-cpuminer-mc-yespower --title=$NEWADDRESS  -e './minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS.w1 -t 1'
 Icon=$HOME/whive-cpuminer-mc-yespower/whive-miner.png
 Terminal=false
 Type=Application
