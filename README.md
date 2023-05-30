@@ -21,6 +21,12 @@ To get started, download the executable for your respective operating system fro
 
 Alternatively, you can also download the source script from our GitHub Repository and run it manually:
 
+### Running the script
+```
+$ git clone https://github.com/melaninsolar/melaninclick.git
+$ chmod +x melaninclick.sh
+$ ./melaninclick.sh
+```
 Melanin Click is a powerful tool for both newcomers looking to delve into the world of cryptocurrencies and seasoned miners seeking to streamline their setup process. Your feedback and suggestions are invaluable to us; feel free to raise an issue or submit a pull request.
 
 Get started with cryptocurrency with just one click using Melanin Click!
@@ -41,12 +47,3 @@ Disclaimer: Please ensure you have read and agreed to the terms and conditions o
 - [x] Display Terms & Conditions in a better way with zenity
 - [ ] Add Icon to MelaninClick
 - [ ] Add Windows OS support
-
-
-### Running the script
-```
-$ git clone https://github.com/melaninsolar/melaninclick.git
-$ chmod +x melaninclick.sh
-$ ./melaninclick.sh
-
-```
