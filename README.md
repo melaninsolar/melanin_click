@@ -1,9 +1,10 @@
-##Melanin Click: Your All-In-One Cryptocurrency Installer
+## Melanin Click: Your All-In-One Cryptocurrency Installer
+
 Welcome to Melanin Click - the quintessential tool for setting up your cryptocurrency environments effortlessly. This user-friendly executable is designed to automate the process of downloading, installing, and initiating Whive, Bitcoin, and Lightning software, eliminating the complexities of manual setup and configuration.
 
 Primarily available as an executable for Mac, Windows, and Linux, Melanin Click provides a robust and seamless experience across platforms.
 
-#Key Features
+# Key Features
 - Easy Installation: Run Whive, Bitcoin, and Lightning effortlessly with a single click.
 - Automatic Updates: Ensures your crypto software is always up-to-date.
 - Enhanced Error Handling: Comprehensive logging and robust error handling for seamless troubleshooting.
@@ -11,7 +12,7 @@ Primarily available as an executable for Mac, Windows, and Linux, Melanin Click 
 - Interactive User Interface: User-friendly GUI designed for users of all skill levels.
 - Localization: Supports multiple languages for global user accessibility.
 
-#How to Use
+# How to Use
 To get started, download the executable for your respective operating system from the links below:
 
 - Melanin Click for Mac
@@ -26,7 +27,7 @@ Get started with cryptocurrency with just one click using Melanin Click!
 
 Disclaimer: Please ensure you have read and agreed to the terms and conditions of each software before running this installation script. The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
 
-##TODO
+## TODO
 - [x] Whive binary download for both MacOS & linux
 - [x] Miner Download for macOS/Linux
 - [x] Add dependencies for macOS/Linux
