@@ -1,6 +1,6 @@
-## Melanin Click: Your All-In-One Cryptocurrency Installer
+## Melanin Click: Your All-In-One Node & Miner Installer
 
-Welcome to Melanin Click - the quintessential tool for setting up your cryptocurrency environments effortlessly. This user-friendly executable is designed to automate the process of downloading, installing, and initiating Whive, Bitcoin, and Lightning software, eliminating the complexities of manual setup and configuration.
+Welcome to Melanin Click - the quintessential tool for setting up your node & miner for Whive & Bitcoin. This user-friendly executable is designed to automate the process of downloading, installing, and initiating Whive, Bitcoin, and Lightning software, eliminating the complexities of manual setup and configuration.
 
 Primarily available as an executable for Mac, Windows, and Linux, Melanin Click provides a robust and seamless experience across platforms.
 
