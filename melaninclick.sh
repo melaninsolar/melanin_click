@@ -1,5 +1,24 @@
 #!/bin/bash
 
+set -e
+
+# Helper function to download and extract files
+download_and_extract() {
+    local url="$1"
+    local tar_file="$2"
+    echo "Downloading $url..."
+    if ! curl -LJO "$url"; then
+        echo "Failed to download $url"
+        exit 1
+    fi
+    echo "Extracting $tar_file..."
+    if ! tar -zxvf "$tar_file"; then
+        echo "Failed to extract $tar_file"
+        exit 1
+    fi
+    rm "$tar_file"
+}
+
 # Welcome message
 echo "Welcome to Whive installation!"
 
@@ -21,9 +40,16 @@ fi
 # Determine OS type
 os_type=$(uname)
 
-# Determine installation path
-install_path="$HOME/whive-core"
+# Prompt user for installation directory
+read -p "Enter the directory to install Whive (default: $HOME/whive-core): " install_path
+install_path=${install_path:-"$HOME/whive-core"}
+
+read -p "Enter the directory to install Whive miner (default: $HOME/whive-cpuminer-mc-yespower): " miner_install_path
+miner_install_path=${miner_install_path:-"$HOME/whive-cpuminer-mc-yespower"}
+
+# Create the directories if they do not exist
 mkdir -p "$install_path"
+mkdir -p "$miner_install_path"
 
 # Check dependencies
 echo -n "Checking dependencies..."
@@ -35,18 +61,6 @@ if [[ "$os_type" == "Linux" ]]; then
             missing+=("$dep")
         fi
     done
-    if [[ ${#missing[@]} -gt 0 ]]; then
-        echo "The following dependencies are missing and need to be installed: ${missing[*]}"
-        read -p "Do you want to install them now? (y/n) " dep_answer
-        if [[ "$dep_answer" == "y" ]]; then
-            sudo apt-get update && sudo apt-get install -y "${missing[@]}"
-        else
-            echo "Installation canceled."
-            exit 1
-        fi
-    else
-            echo "OK"
-    fi
 elif [[ "$os_type" == "Darwin" ]]; then
     dependencies=("git" "brew" "autoconf" "automake" "curl")
     missing=()
@@ -55,102 +69,54 @@ elif [[ "$os_type" == "Darwin" ]]; then
             missing+=("$dep")
         fi
     done
-    if [[ ${#missing[@]} -gt 0 ]]; then
-        echo "The following dependencies are missing and need to be installed: ${missing[*]}"
-        read -p "Do you want to install them now? (y/n) " dep_answer
-        if [[ "$dep_answer" == "y" ]]; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-            brew install "${missing[@]}"
-        else
-            echo "Installation canceled."
-            exit 1
-        fi
-    fi
-else
-    echo "Unsupported OS: $os_type"
-    exit 1
 fi
 
-# Check the operating system
-if [[ "$os_type" == "Darwin" ]]; then
-    # macOS
-    # Download and extract Whive binary for macOS
-    curl -LJO https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-osx64.tar.gz
-    tar -zxvf whive-2.22.1-osx64.tar.gz
-    rm whive-2.22.1-osx64.tar.gz
-    # Move Whive binary to installation directory
-    mv whive/* "$install_path"
-elif [[ "$os_type" == "Linux" ]]; then
-    # Ubuntu
-    #test for file existance
-    FILE=whive-2.22.1-x86_64-linux-gnu.tar.gz
-    if [ -f "$FILE" ]; then
-       rm whive-2.22.1-x86_64-linux-gnu.tar.gz
+# If dependencies are missing, prompt to install them
+if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "The following dependencies are missing and need to be installed: ${missing[*]}"
+    read -p "Do you want to install them now? (y/n) " dep_answer
+    if [[ "$dep_answer" == "y" ]]; then
+        if [[ "$os_type" == "Linux" ]]; then
+            sudo apt-get update && sudo apt-get install -y "${missing[@]}"
+        elif [[ "$os_type" == "Darwin" ]]; then
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            brew install "${missing[@]}"
+        fi
+    else
+        echo "Installation canceled."
+        exit 1
     fi
+else
+    echo "OK"
+fi
 
-    # Download and extract Whive binary for Linux/Ubuntu
-    echo "Download and extract Whive binary for Linux/Ubuntu"
-    curl -LJO https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-x86_64-linux-gnu.tar.gz
-    tar -zxvf whive-2.22.1-x86_64-linux-gnu.tar.gz
-    rm whive-2.22.1-x86_64-linux-gnu.tar.gz
-    # Move Whive binary to installation directory
-    cp -r whive/* "$install_path"
-
+# Download, extract, and move Whive binary to installation directory
+if [[ "$os_type" == "Darwin" ]]; then
+    download_and_extract "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-osx64.tar.gz" "whive-2.22.1-osx64.tar.gz"
+elif [[ "$os_type" == "Linux" ]]; then
+    download_and_extract "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-x86_64-linux-gnu.tar.gz" "whive-2.22.1-x86_64-linux-gnu.tar.gz"
 else
     echo "Unsupported operating system. Please install Whive manually."
     exit 1
 fi
 
+mv whive/* "$install_path"
+
 # Run Whive
-$HOME/whive-core/bin/whive-qt &
+"$install_path/bin/whive-qt" &
 
-# Note: Update the command to run Whive based on your specific requirements
-# For example, you may need to use a different binary or options depending on your setup
-
-# Create desktop shortcut
-if [[ "$(uname -s)" == "Linux" ]]; then
-    curl -o "$install_path/whive.png" https://raw.githubusercontent.com/whiveio/whive/master/src/qt/res/icons/whive.png
-    # Create .desktop file for Linux
-    echo -e "[Desktop Entry]\nType=Application\nName=Whive\nExec=$install_path/bin/whive-qt\nIcon=$install_path/whive.png\nTerminal=false" > "$HOME/Desktop/whive.desktop"
-    gio set  "$HOME/Desktop/whive.desktop" metadata::trusted true
-    chmod +x "$HOME/Desktop/whive.desktop"
-
-elif [[ "$(uname)" == "Darwin" ]]; then
-    # Download whive.icns file from GitHub repository into install directory
-    curl -o "$install_path/whive.icns" https://raw.githubusercontent.com/whiveio/whive/master/src/qt/res/icons/whive.icns
-
-    # Create Whive.app file for macOS
-    mkdir -p "$HOME/Desktop/Whive.app/Contents/MacOS"
-    mkdir -p "$HOME/Desktop/Whive.app/Contents/Resources"
-    echo -e "#!/bin/bash\n$install_path/bin/whive-qt &" > "$HOME/Desktop/Whive.app/Contents/MacOS/Whive"
-    chmod +x "$HOME/Desktop/Whive.app/Contents/MacOS/Whive"
-    cp "$install_path/whive.icns" "$HOME/Desktop/Whive.app/Contents/Resources/Icon.icns"
-
-    # Set icon for .app file
-    /usr/bin/SetFile -a C "$HOME/Desktop/Whive.app"
-
-    # Cleanup
-    rm "$install_path/whive.icns"
-    # Create .command file for macOS
-    #echo -e "#!/bin/bash\n$install_path/bin/whive-qt &" > "$HOME/Desktop/whive.command"
-    #chmod +x "$HOME/Desktop/whive.command"
-fi
-
-# Prompt user for consent
+# Prompt user for consent to install miner
 read -p "This script will install Whive miner on your system. Do you wish to continue? (y/n) " consent
 if [[ ! "$consent" =~ ^[Yy]$ ]]; then
     echo "Installation cancelled."
     exit 1
 fi
 
-# Determine operating system
-os_type=$(uname -s)
+# Install dependencies and build Whive miner
 if [[ "$os_type" == "Linux" ]]; then
-    # Install dependencies on Ubuntu/Linux
     sudo apt update
     sudo apt install -y build-essential git automake autoconf pkg-config libcurl4-openssl-dev libjansson-dev libssl-dev libgmp-dev zlib1g-dev
 elif [[ "$os_type" == "Darwin" ]]; then
-    # Install dependencies on macOS
     brew update
     brew install automake autoconf pkg-config libtool curl openssl@1.1 jansson gmp
 else
@@ -158,20 +124,13 @@ else
     exit 1
 fi
 
-# Download and build Whive miner
-cd ~
-if [[ ! -d "whive-cpuminer-mc-yespower" ]]; then
-    git clone https://github.com/whiveio/whive-cpuminer-mc-yespower.git
-fi
+cd "$miner_install_path"
+git clone https://github.com/whiveio/whive-cpuminer-mc-yespower.git
 cd whive-cpuminer-mc-yespower
 if [[ "$os_type" == "Linux" ]]; then
-    # Ubuntu/Linux
     ./build.sh
 elif [[ "$os_type" == "Darwin" ]]; then
-    # macOS
-    if [[ ! -d "MacOs-cpuminer-mc-yespower" ]]; then
-        git clone https://github.com/whiveio/MacOs-cpuminer-mc-yespower.git
-    fi
+    git clone https://github.com/whiveio/MacOs-cpuminer-mc-yespower.git
     cd MacOs-cpuminer-mc-yespower
     ./autogen.sh
     ./nomacro.pl
@@ -183,42 +142,31 @@ else
 fi
 
 # Generate new address for miner
-echo " Getting new Whive address for mining"
-nwd="$install_path/bin/whive-cli"
-NEWADDRESS=`$nwd getnewaddress`
-echo "You New whive Address: "$NEWADDRESS
-
+echo "Getting new Whive address for mining"
+NEWADDRESS=$("$install_path/bin/whive-cli" getnewaddress)
+echo "You New whive Address: $NEWADDRESS"
 
 # Create desktop shortcut for the miner
 if [[ "$os_type" == "Linux" ]]; then
-    # Ubuntu/Linux
-    curl -o "$HOME/whive-cpuminer-mc-yespower/whive-miner.png" https://raw.githubusercontent.com/whiveio/whive/master/src/qt/res/icons/whive-miner.png
+    curl -o "$miner_install_path/whive-miner.png" https://raw.githubusercontent.com/whiveio/whive/master/src/qt/res/icons/whive-miner.png
     cat > ~/Desktop/Whive-miner.desktop <<EOL
 [Desktop Entry]
 Name=Whive Miner
 Comment=Whive Miner
-Exec=gnome-terminal --working-directory=$HOME/whive-cpuminer-mc-yespower --title=$NEWADDRESS  -e './minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS.w1 -t 1'
-Icon=$HOME/whive-cpuminer-mc-yespower/whive-miner.png
+Exec=gnome-terminal --working-directory="$miner_install_path" --title="$NEWADDRESS"  -e './minerd -a yespower -
+o stratum+tcp://pool.whive.network:3333 -u $NEWADDRESS'
+Icon=$miner_install_path/whive-miner.png
 Terminal=false
 Type=Application
 EOL
-    gio set  "$HOME/Desktop/Whive-miner.desktop" metadata::trusted true
-    chmod +x ~/Desktop/Whive-miner.desktop
-    echo "Desktop shortcut created at ~/Desktop/Whive-miner.desktop"
+chmod +x ~/Desktop/Whive-miner.desktop
 elif [[ "$os_type" == "Darwin" ]]; then
-    # macOS
-    cat > ~/Desktop/Whive-miner.command <<EOL
-#!/bin/bash
-cd ~/whive-cpuminer-mc-yespower/MacOs-cpuminer-mc-yespower
-./minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS.w1 -t 1
-EOL
-    chmod +x ~/Desktop/Whive-miner.command
-    echo "Desktop shortcut created at ~/Desktop/Whive-miner.command"
+    echo "Creating shortcut is not supported on macOS. You can run the miner from the terminal with the following command:"
+    echo "cd $miner_install_path && ./minerd -a yespower -o stratum+tcp://pool.whive.network:3333 -u $NEWADDRESS"
+else
+    echo "Unsupported OS: $os_type"
+    exit 1
 fi
 
-# Clean up binaries
-#cd ~/whive-cpuminer-mc-yes
-
-echo "Whive and the miner have been successfully installed."
-echo "You can run Whive by using the desktop shortcut created on your desktop."
+echo "Installation completed successfully. You can start mining by running the Whive Miner."
 
