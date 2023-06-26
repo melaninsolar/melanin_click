@@ -154,7 +154,7 @@ if [[ "$os_type" == "Linux" ]]; then
 Name=Whive Miner
 Comment=Whive Miner
 Exec=gnome-terminal --working-directory="$miner_install_path" --title="$NEWADDRESS"  -e './minerd -a yespower -
-o stratum+tcp://pool.whive.network:3333 -u $NEWADDRESS'
+o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS'
 Icon=$miner_install_path/whive-miner.png
 Terminal=false
 Type=Application
@@ -162,7 +162,7 @@ EOL
 chmod +x ~/Desktop/Whive-miner.desktop
 elif [[ "$os_type" == "Darwin" ]]; then
     echo "Creating shortcut is not supported on macOS. You can run the miner from the terminal with the following command:"
-    echo "cd $miner_install_path && ./minerd -a yespower -o stratum+tcp://pool.whive.network:3333 -u $NEWADDRESS"
+    echo "cd $miner_install_path && ./minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS"
 else
     echo "Unsupported OS: $os_type"
     exit 1
