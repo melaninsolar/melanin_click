@@ -73,5 +73,8 @@ fi
 # Change directory to Whive installation path
 cd "$INSTALL_PATH"
 
+#Windows installation 
+
+
 # Run Whive
 $HOME/whive-core/bin/whive-qt &
