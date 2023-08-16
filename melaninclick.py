@@ -152,7 +152,7 @@ class InstallPage(tk.Frame):
 
     def run_bitcoin(self):
         # Assuming the binary name is 'bitcoin-qt' for now
-        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bin", "bitcoin-qt")
+        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
         self.run_software(bitcoin_path)
 
     def run_software(self, software_path):
