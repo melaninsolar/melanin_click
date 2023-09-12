@@ -6,7 +6,9 @@ import threading
 import subprocess
 from PIL import Image, ImageTk  
 import tkinter.messagebox as msgbox
-
+import psutil
+import zipfile
+import requests
 
 class Application(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -37,7 +39,7 @@ class StartPage(tk.Frame):
         tk.Frame.__init__(self, parent)
 
         # Load and display the image
-        image_path = os.path.expanduser("~/icon/impn.png")
+        image_path = os.path.expanduser('C:/melaninclick-main/assets/icons/myicon.ico')
         img = Image.open(image_path)
         self.imgtk = ImageTk.PhotoImage(img)
         
@@ -167,28 +169,32 @@ class InstallPage(tk.Frame):
     def install_whive(self):
         self.install('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-win64.zip")
 
+
     def install(self, software, download_url):
         self.update_output(f"Installing {software}...")
 
         install_path = os.path.join(os.path.expanduser('~'), f"{software}-core")
-        downloaded_file = os.path.join(install_path, f"{software}.tar.gz")
+        downloaded_file = os.path.join(install_path, f"{software}.zip")  # Change extension to .zip
 
         # Create installation directory if it doesn't exist
         os.makedirs(install_path, exist_ok=True)
         self.update_output(f"Created installation directory at {install_path}")
 
-        # Download the file
+        # Download the file using requests
         self.update_output(f"Downloading {software} from {download_url}")
-        urllib.request.urlretrieve(download_url, downloaded_file)
+        response = requests.get(download_url, stream=True)
+        with open(downloaded_file, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
 
-        # Extract the tarball and delete it
-        self.update_output("Extracting tarball...")
-        with tarfile.open(downloaded_file, "r:gz") as tar:
-            tar.extractall(path=install_path)
+        # Extract the zip and delete it
+        self.update_output("Extracting zip file...")  # Modify the message to indicate a zip file
+        with zipfile.ZipFile(downloaded_file, 'r') as zip_ref:
+            zip_ref.extractall(path=install_path)
         os.remove(downloaded_file)
         self.update_output(f"{software} installation complete!")
-        
-        # Enable the respective run buttons
+    
+         # Enable the respective run buttons
         if software == 'whive':
             self.run_whive_button.config(state='normal')
         elif software.startswith('bitcoin'):
@@ -196,17 +202,31 @@ class InstallPage(tk.Frame):
 
         self.quit_button.config(state='normal')
 
+
     def run_whive(self):
         whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt.exe")
         self.run_software(whive_path)
 
-    def run_bitcoin(self):
+    #def run_bitcoin(self):
         # Assuming the binary name is 'bitcoin-qt' for now
+        #bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt.exe")
+        #self.run_software(bitcoin_path)
+
+
+    def run_bitcoin(self):
         bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt.exe")
-        self.run_software(bitcoin_path)
+        regtest_path = os.path.join(os.path.expanduser('~'), "bitcoin-regtest-core", "bitcoin-22.0", "bin", "bitcoin-qt.exe")
+
+        if os.path.exists(bitcoin_path):
+            self.run_software(bitcoin_path)
+        elif os.path.exists(regtest_path):
+            self.run_software(regtest_path)
+        else:
+            self.update_output("Bitcoin software not found. Please install first.")
+
 
     def run_lnd(self):
-        lnd_path = os.path.join(os.path.expanduser('~'), "lnd-core", "lnd-darwin-arm64-v0.17.0-beta.rc2", "lnd.exe")
+        lnd_path = os.path.join(os.path.expanduser('~'), "lnd-core", "lnd-windows-amd64-v0.17.0-beta.rc2", "lnd.exe")
         neutrino_args = [
             "--bitcoin.active",
             "--bitcoin.mainnet",
