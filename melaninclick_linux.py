@@ -37,7 +37,7 @@ class StartPage(tk.Frame):
         tk.Frame.__init__(self, parent)
 
         # Load and display the image
-        image_path = os.path.expanduser("~/icon/impn.png")
+        image_path = os.path.expanduser("~/clicktest/melaninclick-main/assets/icons/myicon.png")
         img = Image.open(image_path)
         self.imgtk = ImageTk.PhotoImage(img)
         
@@ -201,12 +201,18 @@ class InstallPage(tk.Frame):
         self.run_software(whive_path)
 
     def run_bitcoin(self):
-        # Assuming the binary name is 'bitcoin-qt' for now
         bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
-        self.run_software(bitcoin_path)
+        regtest_path = os.path.join(os.path.expanduser('~'), "bitcoin-regtest-core", "bitcoin-22.0", "bin", "bitcoin-qt")
+
+        if os.path.exists(bitcoin_path):
+            self.run_software(bitcoin_path)
+        elif os.path.exists(regtest_path):
+            self.run_software(regtest_path, "-regtest")  # added the -regtest argument
+        else:
+            self.update_output("Bitcoin software not found. Please install first.")
 
     def run_lnd(self):
-        lnd_path = os.path.join(os.path.expanduser('~'), "lnd-core", "lnd-darwin-arm64-v0.17.0-beta.rc2", "lnd")
+        lnd_path = os.path.join(os.path.expanduser('~'), "lnd-core", "lnd-linux-amd64-v0.17.0-beta.rc2", "lnd")
         neutrino_args = [
             "--bitcoin.active",
             "--bitcoin.mainnet",
@@ -255,6 +261,7 @@ class InstallPage(tk.Frame):
     def run_software(self, software_path, *args):
         self.update_output(f"Running software from {software_path}")
         subprocess.Popen([software_path, *args])
+
 
     def display_help(self):
         # Placeholder: display some kind of help or open a help file. For this example, I'm just updating the output with a message.
