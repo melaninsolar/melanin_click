@@ -36,15 +36,6 @@ class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
-        # Load and display the image
-        image_path = os.path.expanduser("~/clicktest/melaninclick-main/assets/icons/myicon.png")
-        img = Image.open(image_path)
-        self.imgtk = ImageTk.PhotoImage(img)
-        
-        # Pack the image label in the center of the frame
-        img_label = tk.Label(self, image=self.imgtk)
-        img_label.pack(pady=(self.winfo_height()//4, 10), anchor='center')
-
         # Pack the text label right below the image
         label = tk.Label(self, text="Welcome to the Installation Wizard!")
         label.pack(pady=10, padx=10, anchor='center')
@@ -275,5 +266,3 @@ class InstallPage(tk.Frame):
 
 app = Application()
 app.mainloop()
-
-
