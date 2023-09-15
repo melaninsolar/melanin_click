@@ -6,6 +6,8 @@ import threading
 import subprocess
 from PIL import Image, ImageTk  
 import tkinter.messagebox as msgbox
+from tkinter import simpledialog, messagebox
+import threading
 
 
 class Application(tk.Tk):
@@ -125,8 +127,8 @@ class InstallPage(tk.Frame):
         # Whive CpuMiner section
 
         # New Whive Address button
-        self.new_whive_address_button = tk.Button(frame, text="New Whive Address", command=self.get_whive_address, state='disabled')
-        self.new_whive_address_button.grid(row=3, column=0, padx=10, pady=5)  
+        """ self.new_whive_address_button = tk.Button(frame, text="New Whive Address", command=self.get_whive_address, state='disabled')
+        self.new_whive_address_button.grid(row=3, column=0, padx=10, pady=5)  """ 
 
         self.whive_address_label = tk.Label(self, text="Whive Address: None")
         self.whive_address_label.pack()
@@ -220,37 +222,65 @@ class InstallPage(tk.Frame):
         ]
         self.run_software(lnd_path, *neutrino_args)
 
-    def get_whive_address(self):
+    """ def get_whive_address(self):
         try:
             address = subprocess.check_output([self.whive_cli_path, "getnewaddress"]).decode('utf-8').strip()
             self.update_output(f"New Whive Address: {address}")
             self.whive_address_label.config(text=f"Whive Address: {address}")
         except subprocess.CalledProcessError as e:
-            self.update_output(f"Error fetching Whive address: {e}")
+            self.update_output(f"Error fetching Whive address: {e}") """
+
+    def read_from_process(self, process, output_widget):
+            while True:
+                line = process.stdout.readline()
+                if line:
+                    output_widget.insert(tk.END, line.decode())
+                else:
+                    break
+
 
     def run_whive_miner(self):
         # Display the disclaimer
         disclaimer_text = ("Disclaimer: Running the CPU miner in Melanin Click for an extended period of time on your machine may result "
-                       "in increased wear and tear, overheating, and decreased performance of your hardware. Prolonged mining operations "
-                       "have been known to consume significant electrical resources and may potentially lead to hardware failure. We highly "
-                       "recommend using a dedicated machine equipped with adequate cooling mechanisms for mining activities. This is a summary "
-                       "of potential risks, and we encourage you to refer to the entire disclaimer for a comprehensive understanding of the terms and conditions.")
+                           "in increased wear and tear, overheating, and decreased performance of your hardware. Prolonged mining operations "
+                           "have been known to consume significant electrical resources and may potentially lead to hardware failure. We highly "
+                           "recommend using a dedicated machine equipped with adequate cooling mechanisms for mining activities. This is a summary "
+                           "of potential risks, and we encourage you to refer to the entire disclaimer for a comprehensive understanding of the terms and conditions.")
 
         agreement = msgbox.askyesno("Disclaimer", disclaimer_text)
 
-    # Only proceed if the user clicks 'Yes'
+        # Only proceed if the user clicks 'Yes'
         if not agreement:
             return
 
-        address = self.whive_address_label.cget("text").split(":")[1].strip()
-        minerd_path = os.path.expanduser('~/cpuminer-mc-yespower/minerd')
-        cmd = [minerd_path, "-a", "yespower", "-o", "stratum+tcp://206.189.2.17:3333", "-u", f"{address}.w1", "-t", "1"]
-        
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Prompt the user to enter their Whive address
+        address = simpledialog.askstring("Input", "Please enter your Whive address:")
 
-        stdout, stderr = process.communicate()
-        self.whive_output.insert(tk.END, stdout)
-        self.whive_output.insert(tk.END, stderr)
+        # Continuously ask for the address until a valid address is provided
+        while not address:
+            messagebox.showwarning("Warning", "Please provide a valid Whive address.")
+            address = simpledialog.askstring("Input", "Please enter your Whive address:")
+
+        self.update_output(f"Whive Address: {address}")
+        self.whive_address_label.config(text=f"Whive Address: {address}")
+
+        minerd_path = os.path.expanduser('~/cpuminer-mc-yespower/minerd')
+
+        # Verify the path to the minerd exists
+        if not os.path.exists(minerd_path):
+            self.whive_output.insert(tk.END, f"Error: {minerd_path} does not exist.")
+            return
+
+        cmd = [minerd_path, "-a", "yespower", "-o", "stratum+tcp://206.189.2.17:3333", "-u", f"{address}.w1", "-t", "2"]
+
+        # Print the command for debugging
+        print("Executing:", " ".join(cmd))
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=os.path.dirname(minerd_path), bufsize=1, universal_newlines=True)
+
+        # Use a thread to read the output of the miner and update the GUI in real-time
+        #threading.Thread(target=read_from_process, args=(process, self.whive_output)).start()
+        threading.Thread(target=self.read_from_process, args=(process, self.output)).start()
 
     def run_software(self, software_path, *args):
         self.update_output(f"Running software from {software_path}")
@@ -268,5 +298,4 @@ class InstallPage(tk.Frame):
 
 app = Application()
 app.mainloop()
-
 
