@@ -47,3 +47,6 @@ Disclaimer: Please ensure you have read and agreed to the terms and conditions o
 - [x] Display Terms & Conditions in a better way with zenity
 - [x] Add Icon to MelaninClick
 - [ ] Add Windows OS support
+- [ ] Target various macOS versions/ processor platforms
+- [ ] add pruned node feature
+- [ ] Update Lightning neutrino with create wallet and new address feature
