@@ -74,7 +74,7 @@ class TermsPage(tk.Frame):
             self.next_button.config(state='disabled')
 
     def load_terms(self):
-        url = "https://raw.githubusercontent.com/whiveio/whive/master/WHIVE_TERMS_AND_CONDITIONS.md"
+        url = "https://raw.githubusercontent.com/melaninsolar/melaninclick/main/melanin_click_terms_of_use.md"
         try:
             with urllib.request.urlopen(url) as response:
                 html = response.read().decode()
