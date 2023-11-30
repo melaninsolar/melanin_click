@@ -94,12 +94,21 @@ class InstallPage(tk.Frame):
         frame = tk.Frame(self)
         frame.pack(pady=20, padx=20)
 
-        # Bitcoin Core
+        # Bitcoin Core Installation
         self.install_bitcoin_button = tk.Button(frame, text="Install Bitcoin Core", command=self.check_storage_and_install_bitcoin)
         self.install_bitcoin_button.grid(row=0, column=0, padx=10, pady=5)
 
-        self.run_bitcoin_button = tk.Button(frame, text="Run Bitcoin Core", state='disabled', command=self.run_bitcoin)
-        self.run_bitcoin_button.grid(row=0, column=1, padx=10, pady=5)
+        # Run Mainnet Bitcoin Core
+        self.run_mainnet_button = tk.Button(frame, text="Run Full Bitcoin Node", command=self.run_mainnet)
+        self.run_mainnet_button.grid(row=0, column=1, padx=10, pady=5) 
+
+        # Run Pruned Bitcoin Node
+        self.run_pruned_node_button = tk.Button(frame, text="Run Pruned Bitcoin Node", command=self.run_pruned_node)
+        self.run_pruned_node_button.grid(row=0, column=2, padx=10, pady=5) 
+
+        # Add a separator between Bitcoin Core and Lightning (Lnd)
+        separator1 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
+        separator1.grid(row=1, columnspan=3, pady=10, sticky='ew')
 
         # Lightning (Lnd)
         self.install_lightning_button = tk.Button(frame, text="Install Lightning(Lnd)", command=self.install_lnd)
@@ -108,40 +117,58 @@ class InstallPage(tk.Frame):
         self.run_lightning_button = tk.Button(frame, text="Run Lightning(Lnd)", command=self.run_lnd)
         self.run_lightning_button.grid(row=1, column=1, padx=10, pady=5)
 
+        self.create_wallet_button = tk.Button(frame, text="Create Wallet", command=self.create_wallet)
+        self.create_wallet_button.grid(row=1, column=2, padx=10, pady=5)
+
+        self.unlock_wallet_button = tk.Button(frame, text="Unlock Wallet", command=self.unlock_wallet)
+        self.unlock_wallet_button.grid(row=2, column=0, padx=10, pady=5)
+
+        self.stop_lnd_button = tk.Button(frame, text="Stop LND", command=self.stop_lnd)
+        self.stop_lnd_button.grid(row=2, column=1, padx=10, pady=5)  # Adjust grid positioning as needed
+
+        # Add a separator between Lightning (Lnd) and Whive Core
+        separator2 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
+        separator2.grid(row=3, columnspan=3, pady=10, sticky='ew')
+
         # Whive Core
         self.install_whive_button = tk.Button(frame, text="Install Whive Core", command=self.install_whive)
-        self.install_whive_button.grid(row=2, column=0, padx=10, pady=5)
+        self.install_whive_button.grid(row=3, column=0, padx=10, pady=5)
 
         self.run_whive_button = tk.Button(frame, text="Run Whive Core", state='disabled', command=self.run_whive)
-        self.run_whive_button.grid(row=2, column=1, padx=10, pady=5)
+        self.run_whive_button.grid(row=3, column=1, padx=10, pady=5)
 
         # Whive CpuMiner section
 
         # New Whive Address button
-        self.new_whive_address_button = tk.Button(frame, text="New Whive Address", command=self.get_whive_address, state='disabled')
-        self.new_whive_address_button.grid(row=3, column=0, padx=10, pady=5)  
+        """ self.new_whive_address_button = tk.Button(frame, text="New Whive Address", command=self.get_whive_address, state='disabled')
+        self.new_whive_address_button.grid(row=3, column=0, padx=10, pady=5)  """ 
 
         self.whive_address_label = tk.Label(self, text="Whive Address: None")
         self.whive_address_label.pack()
 
-        self.run_cpuminer_button = tk.Button(frame, text="Run Whive CpuMiner", command=self.run_whive_miner, state='disabled')
-        self.run_cpuminer_button.grid(row=3, column=1, padx=10, pady=5)  
+        self.run_cpuminer_button = tk.Button(frame, text="Run Whive CpuMiner", command=self.run_whive_miner)
+        self.run_cpuminer_button.grid(row=4, column=1, padx=10, pady=5)  
 
 
         self.whive_cli_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-cli")
 
+        # Add a separator between Whive Core and Bitcoin Nerd Miner
+        separator3 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
+        separator3.grid(row=5, columnspan=3, pady=10, sticky='ew')
 
         # Bitcoin Nerd Miner
         self.run_bitcoin_nerd_miner_button = tk.Button(frame, text="Run Bitcoin Nerd Miner", state='disabled')
-        self.run_bitcoin_nerd_miner_button.grid(row=4, column=0, padx=10, pady=5, columnspan=2)
+        self.run_bitcoin_nerd_miner_button.grid(row=5, column=0, padx=10, pady=5, columnspan=3)
+
+        
 
         # Help and Quit
         self.help_button = tk.Button(frame, text="Help", command=self.display_help)
-        self.help_button.grid(row=5, column=0, padx=10, pady=5, columnspan=2)
+        self.help_button.grid(row=6, column=0, padx=10, pady=5, columnspan=3)
 
         self.quit_button = tk.Button(frame, text="Quit", command=controller.quit)
-        self.quit_button.grid(row=6, column=0, padx=10, pady=5, columnspan=2)
-
+        self.quit_button.grid(row=7, column=0, padx=10, pady=5, columnspan=3)
+        
     def check_storage_and_install_bitcoin(self):
         obj_Disk = psutil.disk_usage('C:/')  # Use the drive where you want to install
         free_space = obj_Disk.free / (10**9)  # free space in GB
@@ -155,10 +182,10 @@ class InstallPage(tk.Frame):
             self.update_output("Insufficient storage space for Bitcoin. Please free up some space and try again.")
 
     def install_lnd(self):
-        self.install('lnd', "https://github.com/lightningnetwork/lnd/releases/download/v0.17.0-beta.rc2/lnd-windows-amd64-v0.17.0-beta.rc2.zip")
+        threading.Thread(target=self.install('lnd', "https://github.com/lightningnetwork/lnd/releases/download/v0.17.0-beta.rc2/lnd-windows-amd64-v0.17.0-beta.rc2.zip")).start()
 
     def install_whive(self):
-        self.install('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-win64.zip")
+        threading.Thread(target=self.install('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-win64.zip")).start()
 
 
     def install(self, software, download_url):
@@ -203,18 +230,46 @@ class InstallPage(tk.Frame):
         #bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt.exe")
         #self.run_software(bitcoin_path)
 
-
-    def run_bitcoin(self):
+    def run_mainnet(self):
         bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt.exe")
-        regtest_path = os.path.join(os.path.expanduser('~'), "bitcoin-regtest-core", "bitcoin-22.0", "bin", "bitcoin-qt.exe")
+        if not os.path.exists(bitcoin_path):
+            self.update_output("Error: Could not find a valid Bitcoin installation.")
+            return
 
-        if os.path.exists(bitcoin_path):
-            self.run_software(bitcoin_path)
-        elif os.path.exists(regtest_path):
-            self.run_software(regtest_path)
+        self.run_software(bitcoin_path)
+
+    def create_bitcoin_conf(self, conf_path):
+        content = """
+         prune=550
+         daemon=1
+         """
+    
+        with open(conf_path, 'w') as file:
+            file.write(content)
+
+    def run_pruned_node(self):
+        pruned_bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt.exe")
+        pruned_data_dir = os.path.join(os.path.expanduser('~'), "pruned-node")
+        bitcoin_conf_path = os.path.join(pruned_data_dir, "bitcoin.conf")
+
+        if not os.path.exists(bitcoin_conf_path):
+            self.create_bitcoin_conf(bitcoin_conf_path)
+            self.update_output("bitcoin.conf created in pruned-node directory.")
+
+        if not os.path.exists(pruned_bitcoin_path):
+            self.update_output("Error: Could not find the pruned Bitcoin node installation.")
+            return
+
+        command = [pruned_bitcoin_path, f'--datadir={pruned_data_dir}']
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+
+        if process.returncode != 0:
+            self.update_output("Error running pruned Bitcoin node.")
+            self.update_output("STDOUT: " + stdout.decode())
+            self.update_output("STDERR: " + stderr.decode())
         else:
-            self.update_output("Bitcoin software not found. Please install first.")
-
+            self.update_output("Pruned Bitcoin node started successfully.")
 
     def run_lnd(self):
         lnd_path = os.path.join(os.path.expanduser('~'), "lnd-core", "lnd-windows-amd64-v0.17.0-beta.rc2", "lnd.exe")
