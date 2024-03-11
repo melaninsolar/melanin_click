@@ -94,9 +94,9 @@ fi
 
 # Download, extract, and move Whive binary to installation directory
 if [[ "$os_type" == "Darwin" ]]; then
-    download_and_extract "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-osx64.tar.gz" "whive-2.22.1-osx64.tar.gz"
+    download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-osx64.tar.gz" "whive-22.2.2-osx64.tar.gz"
 elif [[ "$os_type" == "Linux" ]]; then
-    download_and_extract "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-x86_64-linux-gnu.tar.gz" "whive-2.22.1-x86_64-linux-gnu.tar.gz"
+    download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz" "whive-22.2.2-x86_64-linux-gnu.tar.gz"
 else
     echo "Unsupported operating system. Please install Whive manually."
     exit 1
@@ -171,4 +171,3 @@ else
 fi
 
 echo "Installation completed successfully. You can start mining by running the Whive Miner."
-
