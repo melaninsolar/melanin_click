@@ -290,7 +290,7 @@ class InstallPage(tk.Frame):
 
 
     def install_whive(self):
-        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-osx64.tar.gz")).start()
+        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-osx64.tar.gz")).start()
 
     def schedule_update_output(self, message):
         self.after(0, self.update_output, message)
