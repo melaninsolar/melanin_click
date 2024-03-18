@@ -7,10 +7,25 @@ download_and_extract() {
     local url="$1"
     local tar_file="$2"
     echo "Downloading $url..."
-    if ! curl -LJO "$url"; then
+
+    # Check if aria2 is installed, if not, install it
+    if ! command -v aria2c &> /dev/null
+    then
+        echo "aria2 not found, installing..."
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            sudo apt update
+            sudo apt install -y aria2
+        elif [[ "$OSTYPE" == "darwin"* ]]; then
+            brew install aria2
+        fi
+    fi
+
+    # Download using aria2
+    if ! aria2c -x 16 -s 16 -k 1M -o "$tar_file" "$url"; then
         echo "Failed to download $url"
         exit 1
     fi
+
     echo "Extracting $tar_file..."
     if ! tar -zxvf "$tar_file"; then
         echo "Failed to extract $tar_file"
