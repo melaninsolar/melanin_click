@@ -144,8 +144,17 @@ EOL
 chmod +x ~/Desktop/Whive-miner.desktop
 
 log "Installation completed successfully. You can start mining by running the Whive Miner."
-echo "Installation completed successfully. You can start mining by running the Whive Miner."
 
 # Run Whived
 log "Starting Whived..."
 "$install_path/bin/whived" -daemon
+
+# Create a new default wallet if it doesn't exist
+if ! "$install_path/bin/whive-cli" listwallets | grep -q 'default_wallet'; then
+    echo "Creating default wallet..."
+    "$install_path/bin/whive-cli" createwallet "default_wallet"
+fi
+
+# Load the default wallet
+echo "Loading default wallet..."
+"$install_path/bin/whive-cli" loadwallet "default_wallet"
