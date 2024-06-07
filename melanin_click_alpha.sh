@@ -111,20 +111,6 @@ download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/
 mv whive/* "$install_path"
 rm -r whive
 
-# Run Whived
-log "Starting Whived..."
-"$install_path/bin/whived" &
-
-# Create a new default wallet if it doesn't exist
-if ! "$install_path/bin/whive-cli" listwallets | grep -q 'default_wallet'; then
-    log "Creating default wallet..."
-    "$install_path/bin/whive-cli" createwallet "default_wallet"
-fi
-
-# Load the default wallet
-log "Loading default wallet..."
-"$install_path/bin/whive-cli" loadwallet "default_wallet"
-
 # Prompt user for consent to install miner
 read -p "This script will install Whive miner on your system. Do you wish to continue? (y/n) " consent
 if [[ ! "$consent" =~ ^[Yy]$ ]]; then
@@ -143,12 +129,6 @@ git clone https://github.com/whiveio/whive-cpuminer-mc-yespower.git
 cd whive-cpuminer-mc-yespower
 ./build.sh
 
-# Generate new address for miner
-log "Getting new Whive address for mining"
-NEWADDRESS=$("$install_path/bin/whive-cli" getnewaddress)
-log "Your new Whive address: $NEWADDRESS"
-echo "Your new Whive address: $NEWADDRESS"
-
 # Create desktop shortcut for the miner
 log "Creating desktop shortcut for Whive miner..."
 curl -o "$miner_install_path/whive-miner.png" https://raw.githubusercontent.com/whiveio/whive/master/src/qt/res/icons/whive-miner.png
@@ -165,3 +145,7 @@ chmod +x ~/Desktop/Whive-miner.desktop
 
 log "Installation completed successfully. You can start mining by running the Whive Miner."
 echo "Installation completed successfully. You can start mining by running the Whive Miner."
+
+# Run Whived
+log "Starting Whived..."
+"$install_path/bin/whived" -daemon
