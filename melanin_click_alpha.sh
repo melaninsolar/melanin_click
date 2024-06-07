@@ -114,9 +114,15 @@ mv whive/* "$install_path"
 log "Starting Whive..."
 "$install_path/bin/whive-qt" &
 
+# Create a new default wallet if it doesn't exist
+if ! "$install_path/bin/whive-cli" listwallets | grep -q 'default_wallet'; then
+    log "Creating default wallet..."
+    "$install_path/bin/whive-cli" createwallet "default_wallet"
+fi
+
 # Load the default wallet
 log "Loading default wallet..."
-"$install_path/bin/whive-cli" loadwallet ""
+"$install_path/bin/whive-cli" loadwallet "default_wallet"
 
 # Prompt user for consent to install miner
 read -p "This script will install Whive miner on your system. Do you wish to continue? (y/n) " consent
