@@ -109,10 +109,11 @@ fi
 # Download, extract, and move Whive binary to installation directory
 download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz" "whive-22.2.2-x86_64-linux-gnu.tar.gz"
 mv whive/* "$install_path"
+rm -r whive
 
-# Run Whive
-log "Starting Whive..."
-"$install_path/bin/whive-qt" &
+# Run Whived
+log "Starting Whived..."
+"$install_path/bin/whived" &
 
 # Create a new default wallet if it doesn't exist
 if ! "$install_path/bin/whive-cli" listwallets | grep -q 'default_wallet'; then
