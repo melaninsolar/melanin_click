@@ -20,6 +20,14 @@ log() {
 download_and_extract() {
     url="$1"
     tar_file="$2"
+    dest_dir="$3"
+    
+    # Check if the directory already exists to avoid re-extraction
+    if [ -d "$dest_dir" ]; then
+        log "Directory $dest_dir already exists, skipping download and extraction."
+        return
+    fi
+
     log "Downloading $url..."
 
     # Check if aria2 is installed, if not, install it
@@ -38,17 +46,10 @@ download_and_extract() {
     fi
 
     log "Extracting $tar_file..."
-    if ! tar -tf "$tar_file" &> /dev/null; then
+    if ! tar -zxvf "$tar_file" -C "$dest_dir"; then
         log "Failed to extract $tar_file"
         echo "Failed to extract $tar_file"
         exit 1
-    fi
-    
-    # Check if the directory already exists to avoid re-extraction
-    if [ -d "${tar_file%.tar.gz}" ]; then
-        log "Directory ${tar_file%.tar.gz} already exists, skipping extraction."
-    else
-        tar -zxvf "$tar_file"
     fi
     rm "$tar_file"
 }
@@ -113,12 +114,7 @@ else
 fi
 
 # Download, extract, and move Whive binary to installation directory
-if [ -d "$install_path" ]; then
-    log "Whive is already installed in $install_path, skipping download and extraction."
-else
-    download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz" "whive-22.2.2-x86_64-linux-gnu.tar.gz"
-    mv whive/* "$install_path"
-fi
+download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz" "whive-22.2.2-x86_64-linux-gnu.tar.gz" "$install_path"
 
 # Run Whive
 log "Starting Whive..."
