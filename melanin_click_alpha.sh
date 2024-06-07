@@ -7,6 +7,7 @@
 # files, and sets up the Whive wallet and miner.
 # ========================================================================
 
+
 set -e
 
 LOGFILE="$HOME/whive_install.log"
@@ -18,16 +19,8 @@ log() {
 
 # Function to download and extract files
 download_and_extract() {
-    local url="$1"
-    local tar_file="$2"
-    local extract_dir="$3"
-    log "Checking if $extract_dir already exists..."
-
-    if [ -d "$extract_dir" ]; then
-        log "$extract_dir already exists. Skipping download and extraction."
-        return
-    fi
-
+    url="$1"
+    tar_file="$2"
     log "Downloading $url..."
 
     # Check if aria2 is installed, if not, install it
@@ -114,15 +107,12 @@ else
 fi
 
 # Download, extract, and move Whive binary to installation directory
-download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz" "whive-22.2.2-x86_64-linux-gnu.tar.gz" "$install_path"
+download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz" "whive-22.2.2-x86_64-linux-gnu.tar.gz"
+mv whive/* "$install_path"
 
 # Run Whive
 log "Starting Whive..."
 "$install_path/bin/whive-qt" &
-
-# Wait for Whive to start
-log "Waiting for Whive to start..."
-sleep 30  # Adjust this sleep time if needed
 
 # Load the default wallet
 log "Loading default wallet..."
@@ -142,9 +132,7 @@ sudo apt update
 sudo apt install -y build-essential git automake autoconf pkg-config libcurl4-openssl-dev libjansson-dev libssl-dev libgmp-dev zlib1g-dev
 
 cd "$miner_install_path"
-if [ ! -d "whive-cpuminer-mc-yespower" ]; then
-    git clone https://github.com/whiveio/whive-cpuminer-mc-yespower.git
-fi
+git clone https://github.com/whiveio/whive-cpuminer-mc-yespower.git
 cd whive-cpuminer-mc-yespower
 ./build.sh
 

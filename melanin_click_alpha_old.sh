@@ -114,6 +114,10 @@ mv whive/* "$install_path"
 log "Starting Whive..."
 "$install_path/bin/whive-qt" &
 
+# Load the default wallet
+log "Loading default wallet..."
+"$install_path/bin/whive-cli" loadwallet ""
+
 # Prompt user for consent to install miner
 read -p "This script will install Whive miner on your system. Do you wish to continue? (y/n) " consent
 if [[ ! "$consent" =~ ^[Yy]$ ]]; then
