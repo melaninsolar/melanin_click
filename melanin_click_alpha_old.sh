@@ -7,6 +7,7 @@
 # files, and sets up the Whive wallet and miner.
 # ========================================================================
 
+
 set -e
 
 LOGFILE="$HOME/whive_install.log"
@@ -38,17 +39,10 @@ download_and_extract() {
     fi
 
     log "Extracting $tar_file..."
-    if ! tar -tf "$tar_file" &> /dev/null; then
+    if ! tar -zxvf "$tar_file"; then
         log "Failed to extract $tar_file"
         echo "Failed to extract $tar_file"
         exit 1
-    fi
-    
-    # Check if the directory already exists to avoid re-extraction
-    if [ -d "${tar_file%.tar.gz}" ]; then
-        log "Directory ${tar_file%.tar.gz} already exists, skipping extraction."
-    else
-        tar -zxvf "$tar_file"
     fi
     rm "$tar_file"
 }
@@ -113,26 +107,18 @@ else
 fi
 
 # Download, extract, and move Whive binary to installation directory
-if [ -d "$install_path" ]; then
-    log "Whive is already installed in $install_path, skipping download and extraction."
-else
-    download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz" "whive-22.2.2-x86_64-linux-gnu.tar.gz"
-    mv whive/* "$install_path"
-fi
+download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz" "whive-22.2.2-x86_64-linux-gnu.tar.gz"
+mv whive/* "$install_path"
 
 # Run Whive
 log "Starting Whive..."
 "$install_path/bin/whive-qt" &
 
-# Ensure default wallet is loaded before running the miner
-log "Ensuring default wallet is loaded..."
-"$install_path/bin/whive-cli" loadwallet ""
-
 # Prompt user for consent to install miner
 read -p "This script will install Whive miner on your system. Do you wish to continue? (y/n) " consent
 if [[ ! "$consent" =~ ^[Yy]$ ]]; then
-    log "Installation canceled."
-    echo "Installation canceled."
+    log "Installation cancelled."
+    echo "Installation cancelled."
     exit 1
 fi
 
@@ -142,13 +128,9 @@ sudo apt update
 sudo apt install -y build-essential git automake autoconf pkg-config libcurl4-openssl-dev libjansson-dev libssl-dev libgmp-dev zlib1g-dev
 
 cd "$miner_install_path"
-if [ -d "whive-cpuminer-mc-yespower" ]; then
-    log "Whive miner is already installed in $miner_install_path, skipping clone and build."
-else
-    git clone https://github.com/whiveio/whive-cpuminer-mc-yespower.git
-    cd whive-cpuminer-mc-yespower
-    ./build.sh
-fi
+git clone https://github.com/whiveio/whive-cpuminer-mc-yespower.git
+cd whive-cpuminer-mc-yespower
+./build.sh
 
 # Generate new address for miner
 log "Getting new Whive address for mining"
@@ -163,7 +145,7 @@ cat > ~/Desktop/Whive-miner.desktop <<EOL
 [Desktop Entry]
 Name=Whive Miner
 Comment=Whive Miner
-Exec=gnome-terminal --working-directory="$miner_install_path" --title="$NEWADDRESS" -e './minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS'
+Exec=gnome-terminal --working-directory="$miner_install_path" --title="$NEWADDRESS"  -e './minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS'
 Icon=$miner_install_path/whive-miner.png
 Terminal=false
 Type=Application
