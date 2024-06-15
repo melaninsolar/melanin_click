@@ -150,6 +150,16 @@ else
     "$install_path/bin/whived" -daemon
 fi
 
+# Wait for 3 minutes to allow Whived to connect and update the blockchain
+log "Waiting for Whived to connect and update the blockchain. Please wait..."
+for i in {180..1}
+do
+    printf "\rWaiting: %02d seconds remaining..." $i
+    sleep 1
+done
+echo ""
+log "Whived has had time to connect and update the blockchain."
+
 # Create a new default wallet if it doesn't exist
 if ! "$install_path/bin/whive-cli" listwallets | grep -q 'default_wallet'; then
     echo "Creating default wallet..."
