@@ -168,7 +168,19 @@ fi
 
 # Load the default wallet
 echo "Loading default wallet..."
-"$install_path/bin/whive-cli" loadwallet "default_wallet"
+
+# Check if the default wallet is already loaded
+if "$install_path/bin/whive-cli" listwallets | grep -q 'default_wallet'; then
+    echo "Default wallet is already loaded."
+else
+    echo "Default wallet is not loaded. Loading now..."
+    "$install_path/bin/whive-cli" loadwallet "default_wallet"
+    if [ $? -eq 0 ]; then
+        echo "Default wallet loaded successfully."
+    else
+        echo "Failed to load default wallet."
+    fi
+fi
 
 # Interactive message to the user
 echo -e "\nInstallation completed successfully! Here are your next steps:"
