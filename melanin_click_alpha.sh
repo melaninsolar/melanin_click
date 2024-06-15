@@ -7,7 +7,6 @@
 # files, and sets up the Whive wallet and miner.
 # ========================================================================
 
-
 set -e
 
 LOGFILE="$HOME/whive_install.log"
@@ -69,12 +68,9 @@ if [[ "$disk_space" -lt "$required_space" ]]; then
     exit 1
 fi
 
-# Prompt user for installation directory
-read -p "Enter the directory to install Whive (default: $HOME/whive-core): " install_path
-install_path=${install_path:-"$HOME/whive-core"}
-
-read -p "Enter the directory to install Whive miner (default: $HOME/whive-cpuminer-mc-yespower): " miner_install_path
-miner_install_path=${miner_install_path:-"$HOME/whive-cpuminer-mc-yespower"}
+# Define installation directories
+install_path="$HOME/whive-core"
+miner_install_path="$HOME/whive-cpuminer-mc-yespower"
 
 # Create the directories if they do not exist
 mkdir -p "$install_path"
@@ -145,9 +141,14 @@ chmod +x ~/Desktop/Whive-miner.desktop
 
 log "Installation completed successfully. You can start mining by running the Whive Miner."
 
-# Run Whived
-log "Starting Whived..."
-"$install_path/bin/whived" -daemon
+# Check if Whived is running
+if pgrep -x "whived" > /dev/null
+then
+    log "Whived is already running."
+else
+    log "Starting Whived..."
+    "$install_path/bin/whived" -daemon
+fi
 
 # Create a new default wallet if it doesn't exist
 if ! "$install_path/bin/whive-cli" listwallets | grep -q 'default_wallet'; then
@@ -158,3 +159,11 @@ fi
 # Load the default wallet
 echo "Loading default wallet..."
 "$install_path/bin/whive-cli" loadwallet "default_wallet"
+
+# Interactive message to the user
+echo -e "\nInstallation completed successfully! Here are your next steps:"
+echo -e "1. To start the Whive-QT Wallet, click on the 'Whive-QT Wallet' shortcut on your desktop or run the following command:\n"
+echo -e "\t$install_path/bin/whive-qt\n"
+echo -e "2. To start mining with the Whive Miner, click on the 'Whive Miner' shortcut on your desktop or run the following command:\n"
+echo -e "\tgnome-terminal --working-directory='$miner_install_path' --title='$NEWADDRESS' -e './minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS'\n"
+echo -e "Happy mining with Whive!"
