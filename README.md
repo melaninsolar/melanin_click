@@ -50,3 +50,12 @@ Disclaimer: Please ensure you have read and agreed to the terms and conditions o
 - [ ] Target various macOS versions/ processor platforms
 - [ ] add pruned node feature
 - [ ] Update Lightning neutrino with create wallet and new address feature
+
+
+#Contact Us
+If you encounter any issues or have questions please reach out to us on our GitHub Issues page or join our Telegram Group
+
+#Contribution
+We welcome contributions from the community If you would like to contribute please fork the repository and submit a pull request with your changes For major changes please open an issue to discuss what you would like to change
+
+Thank you for using Melanin Click Happy mining
