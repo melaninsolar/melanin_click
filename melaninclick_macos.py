@@ -98,6 +98,10 @@ class InstallPage(tk.Frame):
         frame = tk.Frame(self)
         frame.pack(pady=20, padx=20)
 
+       # Add a separator between Bitcoin Core and screen
+        separator1 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
+        separator1.grid(row=0, columnspan=3, pady=10, sticky='ew')
+
         # Bitcoin Core Installation
         self.install_bitcoin_button = tk.Button(frame, text="Install Bitcoin Core", command=self.check_storage_and_install_bitcoin)
         self.install_bitcoin_button.grid(row=0, column=0, padx=10, pady=5)
@@ -110,25 +114,12 @@ class InstallPage(tk.Frame):
         self.run_pruned_node_button = tk.Button(frame, text="Run Pruned Bitcoin Node", command=self.run_pruned_node)
         self.run_pruned_node_button.grid(row=0, column=2, padx=10, pady=5) 
 
+        self.run_whive_button = tk.Button(frame, text="Run Bitcoin SV2 Miner", state='disabled')
+        self.run_whive_button.grid(row=1, column=1, padx=10, pady=5)
+
         # Add a separator between Bitcoin Core and Lightning (Lnd)
         separator1 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
-        separator1.grid(row=1, columnspan=3, pady=10, sticky='ew')
-
-        # Lightning (Lnd)
-        self.install_lightning_button = tk.Button(frame, text="Install Lightning(Lnd)", command=self.install_lnd)
-        self.install_lightning_button.grid(row=1, column=0, padx=10, pady=5)
-
-        self.run_lightning_button = tk.Button(frame, text="Run Lightning(Lnd)", command=self.run_lnd)
-        self.run_lightning_button.grid(row=1, column=1, padx=10, pady=5)
-
-        self.create_wallet_button = tk.Button(frame, text="Create Wallet", command=self.create_wallet)
-        self.create_wallet_button.grid(row=1, column=2, padx=10, pady=5)
-
-        self.unlock_wallet_button = tk.Button(frame, text="Unlock Wallet", command=self.unlock_wallet)
-        self.unlock_wallet_button.grid(row=2, column=0, padx=10, pady=5)
-
-        self.stop_lnd_button = tk.Button(frame, text="Stop LND", command=self.stop_lnd)
-        self.stop_lnd_button.grid(row=2, column=1, padx=10, pady=5)  # Adjust grid positioning as needed
+        separator1.grid(row=2, columnspan=3, pady=10, sticky='ew')
 
         # Add a separator between Lightning (Lnd) and Whive Core
         separator2 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
@@ -141,6 +132,8 @@ class InstallPage(tk.Frame):
         self.run_whive_button = tk.Button(frame, text="Run Whive Core", state='disabled', command=self.run_whive)
         self.run_whive_button.grid(row=3, column=1, padx=10, pady=5)
 
+
+
         # Whive CpuMiner section
 
         # New Whive Address button
@@ -151,10 +144,13 @@ class InstallPage(tk.Frame):
         self.whive_address_label.pack()
 
         self.run_cpuminer_button = tk.Button(frame, text="Run Whive CpuMiner", command=self.run_whive_miner)
-        self.run_cpuminer_button.grid(row=4, column=1, padx=10, pady=5)  
+        self.run_cpuminer_button.grid(row=4, column=0, padx=10, pady=5)  
 
 
         self.whive_cli_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-cli")
+
+        self.run_whive_button = tk.Button(frame, text="Run Whive SV2 Miner", state='disabled')
+        self.run_whive_button.grid(row=4, column=1, padx=10, pady=5)
 
         # Add a separator between Whive Core and Bitcoin Nerd Miner
         separator3 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
@@ -242,9 +238,6 @@ class InstallPage(tk.Frame):
         else:
             self.update_output("Pruned Bitcoin node started successfully.")
 
-    def install_lnd(self):
-        threading.Thread(target=self.install, args=('lnd', "https://github.com/lightningnetwork/lnd/releases/download/v0.17.0-beta.rc2/lnd-darwin-arm64-v0.17.0-beta.rc2.tar.gz")).start()
-
     def create_whive_conf(self):
         conf_dir = os.path.expanduser('~/Library/Application Support/Whive')
         os.makedirs(conf_dir, exist_ok=True)
@@ -290,7 +283,7 @@ class InstallPage(tk.Frame):
 
 
     def install_whive(self):
-        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-osx64.tar.gz")).start()
+        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-osx64.tar.gz")).start()
 
     def schedule_update_output(self, message):
         self.after(0, self.update_output, message)
@@ -338,95 +331,6 @@ class InstallPage(tk.Frame):
         # Assuming the binary name is 'bitcoin-qt' for now
         bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
         self.run_software(bitcoin_path)
-
-    def run_lnd(self):
-        lnd_path = os.path.join(os.path.expanduser('~'), "lnd-core", "lnd-darwin-arm64-v0.17.0-beta.rc2", "lnd")
-        neutrino_args = [
-            "--bitcoin.active",
-            "--bitcoin.mainnet",
-            "--bitcoin.node=neutrino",
-            "--neutrino.addpeer=btcd-mainnet.lightning.computer",
-            "--neutrino.addpeer=mainnet1-btcd.zaphq.io",
-            "--neutrino.addpeer=mainnet2-btcd.zaphq.io",
-            "--neutrino.addpeer=mainnet3-btcd.zaphq.io",
-            "--neutrino.addpeer=mainnet4-btcd.zaphq.io",
-            "--neutrino.feeurl=https://nodes.lightning.computer/fees/v1/btc-fee-estimates.json"
-        ]
-        #self.run_software(lnd_path, *neutrino_args)
-        cmd = ' '.join([lnd_path] + neutrino_args)
-        escaped_cmd = cmd.replace('"', r'\"')  # Escape any double quotes in the command
-        subprocess.Popen(['osascript', '-e', f'tell app "Terminal" to do script "{escaped_cmd}"'])
-
-    def is_lnd_running(self):
-        try:
-            # Use 'pgrep' or a similar command to check if the lnd process is running
-            subprocess.check_output(['pgrep', 'lnd'])
-            return True
-        except subprocess.CalledProcessError:
-            return False
-
-    def update_button_states(self):
-        if self.is_lnd_running():
-            self.create_button.config(state=tk.NORMAL)
-            self.unlock_button.config(state=tk.NORMAL)
-        else:
-            self.create_button.config(state=tk.DISABLED)
-            self.unlock_button.config(state=tk.DISABLED)
-    
-    def start_checking_lnd_status(self):
-        self.update_button_states()
-        # Check every 5 seconds (you can adjust this interval)
-        self.after(5000, self.start_checking_lnd_status)
-
-    """ def run_lnd(self):
-        lnd_thread = threading.Thread(target=self.run_lnd_in_thread)
-        lnd_thread.start() """
-
-    """ def get_whive_address(self):
-        try:
-            address = subprocess.check_output([self.whive_cli_path, "getnewaddress"]).decode('utf-8').strip()
-            self.update_output(f"New Whive Address: {address}")
-            self.whive_address_label.config(text=f"Whive Address: {address}")
-        except subprocess.CalledProcessError as e:
-            self.update_output(f"Error fetching Whive address: {e}") """
-    
-
-    def create_wallet(self):
-        lncli_path = os.path.join(os.path.expanduser('~'), "lnd-core", "lnd-darwin-arm64-v0.17.0-beta.rc2", "lncli")
-        """ try:
-            result = subprocess.check_output([lncli_path, "create"], stderr=subprocess.STDOUT).decode('utf-8')
-            self.update_output(result)
-        except subprocess.CalledProcessError as e:
-            self.update_output(f"Error: {e.output.decode('utf-8')}") """
-        cmd = f'{lncli_path} create'
-        subprocess.Popen(['osascript', '-e', f'tell app "Terminal" to do script "{cmd}"'])
-
-
-    def unlock_wallet(self):
-        lncli_path = os.path.join(os.path.expanduser('~'), "lnd-core", "lnd-darwin-arm64-v0.17.0-beta.rc2", "lncli")
-        """ try:
-            result = subprocess.check_output([lncli_path, "unlock"], stderr=subprocess.STDOUT).decode('utf-8')
-            self.update_output(result)
-        except subprocess.CalledProcessError as e:
-            self.update_output(f"Error: {e.output.decode('utf-8')}") """
-        cmd = f'{lncli_path} unlock'
-        subprocess.Popen(['osascript', '-e', f'tell app "Terminal" to do script "{cmd}"'])
-    
-    def stop_lnd(self):
-        lncli_path = os.path.join(os.path.expanduser('~'), "lnd-core", "lnd-darwin-arm64-v0.17.0-beta.rc2", "lncli")
-        try:
-            result = subprocess.check_output([lncli_path, "stop"], stderr=subprocess.STDOUT).decode('utf-8')
-            self.update_output(result)
-        except subprocess.CalledProcessError as e:
-            self.update_output(f"Error: {e.output.decode('utf-8')}")
-
-    def read_from_process(self, process, output_widget):
-            while True:
-                line = process.stdout.readline()
-                if line:
-                    output_widget.insert(tk.END, line)
-                else:
-                    break
 
     def download_and_extract_miner(self, url, extract_to='~/cpuminer-opt-mac'):
         extract_to = os.path.expanduser(extract_to)
