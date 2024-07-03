@@ -1,69 +1,74 @@
 name: Build and Release
 
 on:
+  workflow_dispatch:
   push:
     tags:
-      - v0.2-beta  # Match tags like v0.2-beta, v1.0, etc.
+      - 'v*'
 
 jobs:
   build-and-release:
-    name: Build and Release for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: [3.9]
+        include:
+          - os: ubuntu-latest
+            architecture: amd64
+          - os: ubuntu-latest
+            architecture: arm64
+          - os: windows-latest
+            architecture: amd64
+          - os: macos-latest
+            architecture: x86_64
+          - os: macos-latest
+            architecture: arm64
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.9'
 
-    - name: Install dependencies
-      run: |
-        pip install pyinstaller
+    - name: Install PyInstaller
+      run: pip install pyinstaller
 
-    - name: Build binary with PyInstaller
-      run: |
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
-            pyinstaller --onefile --icon=assets/icons/myicon.ico melaninclick_windows.py
-        elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            pyinstaller --onefile --icon=assets/icons/myicon.icns melaninclick_macos.py
-        else
-            pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py  
-        fi
-      # After this step, you'll have your output ready.
+    - name: Build binary with PyInstaller for Linux x86_64
+      if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'amd64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
 
-    - name: Install GitHub CLI
-      run: |
-        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key C99B11DEB97541F0
-        sudo apt-add-repository https://cli.github.com/packages
-        sudo apt update
-        sudo apt install gh
+    - name: Build binary with PyInstaller for Linux ARM64
+      if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'arm64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
 
-    - name: Authenticate with GitHub CLI
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+    - name: Build binary with PyInstaller for macOS x86_64
+      if: matrix.os == 'macos-latest' && matrix.architecture == 'x86_64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.icns melaninclick_macos.py
+
+    - name: Build binary with PyInstaller for macOS ARM64
+      if: matrix.os == 'macos-latest' && matrix.architecture == 'arm64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.icns melaninclick_macos.py
+
+    - name: Build binary with PyInstaller for Windows x86_64
+      if: matrix.os == 'windows-latest' && matrix.architecture == 'amd64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.ico melaninclick_windows.py
 
     - name: Create Release
-      id: create_release
+      if: startsWith(github.ref, 'refs/tags/')
       run: |
         gh release create ${{ github.ref }} \
-          --title "MelaninClick ${{ github.ref }}" \
-          --notes "Release notes for ${{ github.ref }}" \
-          --draft=false \
-          --prerelease=true
+          --title "Release ${{ github.ref }}" \
+          --notes "Automated release of ${{ github.ref }}"
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.ACTION_TOKEN }}
 
     - name: Upload Release Asset
+      if: startsWith(github.ref, 'refs/tags/')
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/your_script${{ runner.os == 'Windows' && '.exe' || (runner.os == 'macOS' && '.app') || (runner.os == 'Linux' && '.AppImage') }}
-        asset_name: melaninclick-${{ github.ref }}-${{ runner.os == 'Windows' && '.exe' || (runner.os == 'macOS' && '.app') || (runner.os == 'Linux' && '.AppImage') }}
-        # The resulting name will be something like `melaninclick-v0.2-beta-Linux.AppImage`
+        asset_path: ./dist/melaninclick-${{ matrix.os }}-${{ matrix.architecture }}.zip
+        asset_name: melaninclick-${{ github.ref }}-${{ matrix.os }}-${{ matrix.architecture }}.zip
         asset_content_type: application/octet-stream
