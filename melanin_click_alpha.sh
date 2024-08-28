@@ -1,0 +1,191 @@
+#!/bin/bash
+
+# ========================================================================
+# melanin_click_alpha.sh
+# This script installs the Whive wallet and Whive miner on a Linux system.
+# It ensures necessary dependencies are installed, downloads the required
+# files, and sets up the Whive wallet and miner.
+# ========================================================================
+
+set -e
+
+LOGFILE="$HOME/whive_install.log"
+
+# Function to log messages
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') : $1" | tee -a "$LOGFILE"
+}
+
+# Function to download and extract files
+download_and_extract() {
+    url="$1"
+    tar_file="$2"
+    log "Downloading $url..."
+
+    # Check if aria2 is installed, if not, install it
+    if ! command -v aria2c &> /dev/null
+    then
+        log "aria2 not found, installing..."
+        sudo apt update
+        sudo apt install -y aria2
+    fi
+
+    # Download using aria2
+    if ! aria2c -x 16 -s 16 -k 1M -o "$tar_file" "$url"; then
+        log "Failed to download $url"
+        echo "Failed to download $url"
+        exit 1
+    fi
+
+    log "Extracting $tar_file..."
+    if ! tar -zxvf "$tar_file"; then
+        log "Failed to extract $tar_file"
+        echo "Failed to extract $tar_file"
+        exit 1
+    fi
+    rm "$tar_file"
+}
+
+# Welcome message
+log "Welcome to Whive installation!"
+
+# Disclaimer
+echo "DISCLAIMER: This script will install software on your system. Ensure you have sufficient permissions and have backed up your important data. Proceeding indicates acceptance of any risks involved."
+read -p "Do you agree to continue with the installation? (y/n) " answer
+if [[ "$answer" != "y" ]]; then
+    log "Installation canceled."
+    echo "Installation canceled."
+    exit 1
+fi
+
+# Check available disk space
+disk_space=$(df -k / | awk 'NR==2 {print $4}')
+required_space=5000000  # 5GB in kilobytes
+
+if [[ "$disk_space" -lt "$required_space" ]]; then
+    log "You do not have enough disk space to install Whive miner."
+    echo "You do not have enough disk space to install Whive miner. Please free up at least 5GB of disk space and try again."
+    exit 1
+fi
+
+# Define installation directories
+install_path="$HOME/whive-core"
+miner_install_path="$HOME/whive-cpuminer-mc-yespower"
+
+# Create the directories if they do not exist
+mkdir -p "$install_path"
+mkdir -p "$miner_install_path"
+
+# Check dependencies
+log "Checking dependencies..."
+dependencies=("git" "build-essential" "libcurl4-openssl-dev")
+missing=()
+for dep in "${dependencies[@]}"; do
+    if ! dpkg -l "$dep" &> /dev/null; then
+        missing+=("$dep")
+    fi
+done
+
+# If dependencies are missing, prompt to install them
+if [[ ${#missing[@]} -gt 0 ]]; then
+    log "The following dependencies are missing and need to be installed: ${missing[*]}"
+    echo "The following dependencies are missing and need to be installed: ${missing[*]}"
+    read -p "Do you want to install them now? (y/n) " dep_answer
+    if [[ "$dep_answer" == "y" ]]; then
+        sudo apt-get update && sudo apt-get install -y "${missing[@]}"
+    else
+        log "Installation canceled."
+        echo "Installation canceled."
+        exit 1
+    fi
+else
+    log "All dependencies are satisfied."
+fi
+
+# Download, extract, and move Whive binary to installation directory
+download_and_extract "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz" "whive-22.2.2-x86_64-linux-gnu.tar.gz"
+mv whive/* "$install_path"
+rm -r whive
+
+# Prompt user for consent to install miner
+read -p "This script will install Whive miner on your system. Do you wish to continue? (y/n) " consent
+if [[ ! "$consent" =~ ^[Yy]$ ]]; then
+    log "Installation cancelled."
+    echo "Installation cancelled."
+    exit 1
+fi
+
+# Install dependencies and build Whive miner
+log "Installing miner dependencies..."
+sudo apt update
+sudo apt install -y build-essential git automake autoconf pkg-config libcurl4-openssl-dev libjansson-dev libssl-dev libgmp-dev zlib1g-dev
+
+cd "$miner_install_path"
+git clone https://github.com/whiveio/whive-cpuminer-mc-yespower.git
+cd whive-cpuminer-mc-yespower
+./build.sh
+
+# Create desktop shortcut for the miner
+log "Creating desktop shortcut for Whive miner..."
+curl -o "$miner_install_path/whive-miner.png" https://raw.githubusercontent.com/whiveio/whive/master/src/qt/res/icons/whive-miner.png
+cat > ~/Desktop/Whive-miner.desktop <<EOL
+[Desktop Entry]
+Name=Whive Miner
+Comment=Whive Miner
+Exec=gnome-terminal --working-directory="$miner_install_path" --title="$NEWADDRESS"  -e './minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS'
+Icon=$miner_install_path/whive-miner.png
+Terminal=false
+Type=Application
+EOL
+chmod +x ~/Desktop/Whive-miner.desktop
+
+log "Installation completed successfully. You can start mining by running the Whive Miner."
+
+# Check if Whived is running
+if pgrep -x "whived" > /dev/null
+then
+    log "Whived is already running."
+else
+    log "Starting Whived..."
+    "$install_path/bin/whived" -daemon
+fi
+
+# Wait for 3 minutes to allow Whived to connect and update the blockchain
+log "Waiting for Whived to connect and update the blockchain. Please wait..."
+for i in {180..1}
+do
+    printf "\rWaiting: %02d seconds remaining..." $i
+    sleep 1
+done
+echo ""
+log "Whived has had time to connect and update the blockchain."
+
+# Create a new default wallet if it doesn't exist
+if ! "$install_path/bin/whive-cli" listwallets | grep -q 'default_wallet'; then
+    echo "Creating default wallet..."
+    "$install_path/bin/whive-cli" createwallet "default_wallet"
+fi
+
+# Load the default wallet
+echo "Loading default wallet..."
+
+# Check if the default wallet is already loaded
+if "$install_path/bin/whive-cli" listwallets | grep -q 'default_wallet'; then
+    echo "Default wallet is already loaded."
+else
+    echo "Default wallet is not loaded. Loading now..."
+    "$install_path/bin/whive-cli" loadwallet "default_wallet"
+    if [ $? -eq 0 ]; then
+        echo "Default wallet loaded successfully."
+    else
+        echo "Failed to load default wallet."
+    fi
+fi
+
+# Interactive message to the user
+echo -e "\nInstallation completed successfully! Here are your next steps:"
+echo -e "1. To start the Whive-QT Wallet, click on the 'Whive-QT Wallet' shortcut on your desktop or run the following command:\n"
+echo -e "\t$install_path/bin/whive-qt\n"
+echo -e "2. To start mining with the Whive Miner, click on the 'Whive Miner' shortcut on your desktop or run the following command:\n"
+echo -e "\tgnome-terminal --working-directory='$miner_install_path' --title='$NEWADDRESS' -e './minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u $NEWADDRESS'\n"
+echo -e "Happy mining with Whive!"
