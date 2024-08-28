@@ -1,0 +1,74 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            architecture: amd64
+          - os: ubuntu-latest
+            architecture: arm64
+          - os: windows-latest
+            architecture: amd64
+          - os: macos-latest
+            architecture: x86_64
+          - os: macos-latest
+            architecture: arm64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install PyInstaller
+      run: pip install pyinstaller
+
+    - name: Build binary with PyInstaller for Linux x86_64
+      if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'amd64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
+
+    - name: Build binary with PyInstaller for Linux ARM64
+      if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'arm64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
+
+    - name: Build binary with PyInstaller for macOS x86_64
+      if: matrix.os == 'macos-latest' && matrix.architecture == 'x86_64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.icns melaninclick_macos.py
+
+    - name: Build binary with PyInstaller for macOS ARM64
+      if: matrix.os == 'macos-latest' && matrix.architecture == 'arm64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.icns melaninclick_macos.py
+
+    - name: Build binary with PyInstaller for Windows x86_64
+      if: matrix.os == 'windows-latest' && matrix.architecture == 'amd64'
+      run: pyinstaller --onefile --icon=assets/icons/myicon.ico melaninclick_windows.py
+
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        gh release create ${{ github.ref }} \
+          --title "Release ${{ github.ref }}" \
+          --notes "Automated release of ${{ github.ref }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.ACTION_TOKEN }}
+
+    - name: Upload Release Asset
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./dist/melaninclick-${{ matrix.os }}-${{ matrix.architecture }}.zip
+        asset_name: melaninclick-${{ github.ref }}-${{ matrix.os }}-${{ matrix.architecture }}.zip
+        asset_content_type: application/octet-stream
