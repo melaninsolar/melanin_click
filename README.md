@@ -98,11 +98,11 @@ Ensure you have **Python 3.x** installed on your system. Instructions for instal
 
    - Clone the repository from GitHub:
      ```bash
-     git clone https://github.com/melaninsolar/melaninclick.git
+     git clone https://github.com/melaninsolar/melanin_click.git
      ```
    - Navigate to the cloned directory:
      ```bash
-     cd melaninclick
+     cd melanin_click
      ```
 
 2. **(Optional) Set Up a Virtual Environment**
@@ -268,8 +268,8 @@ If you have questions or suggestions, open an issue on GitHub or contact us via 
 
 If you encounter any issues or have questions, feel free to reach out through:
 
-- **GitHub Issues**: [Create an issue](https://github.com/melaninsolar/melaninclick/issues)
-- **Telegram Group**: [Join our community](#) *(Add your Telegram group link)*
+- **GitHub Issues**: [Create an issue](https://github.com/melaninsolar/melanin_click/issues)
+- **Telegram Group**: [Join our community](https://t.me/melaninsolar)
 
 Thank you for using **Melanin Click**! Happy mining!
 
