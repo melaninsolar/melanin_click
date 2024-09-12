@@ -82,7 +82,7 @@ jobs:
           --title "Release ${{ github.ref }}" \
           --notes "Automated release of ${{ github.ref }}"
       env:
-        GITHUB_TOKEN: ${{ secrets.ACTION_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set the token for gh
 
     # Upload Linux Assets
     - name: Upload Linux Assets
