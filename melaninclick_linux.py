@@ -143,6 +143,23 @@ class InstallPage(tk.Frame):
             self.run_mainnet_button.config(state='normal')
             self.run_pruned_node_button.config(state='normal')
 
+    def install_whive(self):
+        whive_url = "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-x86_64-linux-gnu.tar.gz"
+        self.update_output("Installing Whive Core...")
+        install_path = os.path.join(os.path.expanduser('~'), "whive-core")
+        downloaded_file = os.path.join(install_path, "whive.tar.gz")
+        
+        os.makedirs(install_path, exist_ok=True)
+        urllib.request.urlretrieve(whive_url, downloaded_file)
+        
+        self.update_output("Extracting Whive Core tarball...")
+        with tarfile.open(downloaded_file, "r:gz") as tar:
+            tar.extractall(path=install_path)
+        os.remove(downloaded_file)
+        
+        self.update_output("Whive Core installation complete!")
+        self.run_whive_button.config(state='normal')
+
     def run_mainnet(self):
         bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
         self.run_software(bitcoin_path)
@@ -246,9 +263,9 @@ class InstallPage(tk.Frame):
         self.update_output(f"Running command: {' '.join(args)}")
         try:
             subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            self.update_output("Miner started successfully.")
+            self.update_output("Software started successfully.")
         except Exception as e:
-            self.update_output(f"Failed to start miner: {str(e)}")
+            self.update_output(f"Failed to start software: {str(e)}")
 
     def display_help(self):
         help_text = "Help Section: \nUse this application to install and manage Bitcoin, Lightning, and Whive software."
