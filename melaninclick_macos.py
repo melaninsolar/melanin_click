@@ -4,13 +4,11 @@ import urllib.request
 import tarfile
 import threading
 import subprocess
-from PIL import Image, ImageTk  
+from PIL import Image, ImageTk
 import tkinter.messagebox as msgbox
 from tkinter import simpledialog, messagebox
-import threading
 import secrets
 import string
-
 
 class Application(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -39,8 +37,6 @@ class Application(tk.Tk):
 class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-
-       
 
         # Pack the text label right below the image
         label = tk.Label(self, text="Welcome to the Installation Wizard!")
@@ -98,7 +94,7 @@ class InstallPage(tk.Frame):
         frame = tk.Frame(self)
         frame.pack(pady=20, padx=20)
 
-       # Add a separator between Bitcoin Core and screen
+        # Add a separator between Bitcoin Core and screen
         separator1 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
         separator1.grid(row=0, columnspan=3, pady=10, sticky='ew')
 
@@ -108,14 +104,15 @@ class InstallPage(tk.Frame):
 
         # Run Mainnet Bitcoin Core
         self.run_mainnet_button = tk.Button(frame, text="Run Full Bitcoin Node", command=self.run_mainnet)
-        self.run_mainnet_button.grid(row=0, column=1, padx=10, pady=5) 
+        self.run_mainnet_button.grid(row=0, column=1, padx=10, pady=5)
 
         # Run Pruned Bitcoin Node
         self.run_pruned_node_button = tk.Button(frame, text="Run Pruned Bitcoin Node", command=self.run_pruned_node)
-        self.run_pruned_node_button.grid(row=0, column=2, padx=10, pady=5) 
+        self.run_pruned_node_button.grid(row=0, column=2, padx=10, pady=5)
 
-        self.run_whive_button = tk.Button(frame, text="Run Bitcoin SV2 Miner", state='disabled')
-        self.run_whive_button.grid(row=1, column=1, padx=10, pady=5)
+        # Public Pool Button for Bitcoin CPU Miner
+        self.public_pool_button = tk.Button(frame, text="Connect to Public Pool", command=self.run_bitcoin_miner)
+        self.public_pool_button.grid(row=1, column=1, padx=10, pady=5, columnspan=1)
 
         # Add a separator between Bitcoin Core and Lightning (Lnd)
         separator1 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
@@ -132,35 +129,16 @@ class InstallPage(tk.Frame):
         self.run_whive_button = tk.Button(frame, text="Run Whive Core", state='disabled', command=self.run_whive)
         self.run_whive_button.grid(row=3, column=1, padx=10, pady=5)
 
-
-
         # Whive CpuMiner section
-
-        # New Whive Address button
-        """ self.new_whive_address_button = tk.Button(frame, text="New Whive Address", command=self.get_whive_address, state='disabled')
-        self.new_whive_address_button.grid(row=3, column=0, padx=10, pady=5)  """ 
-
         self.whive_address_label = tk.Label(self, text="Whive Address: None")
         self.whive_address_label.pack()
 
         self.run_cpuminer_button = tk.Button(frame, text="Run Whive CpuMiner", command=self.run_whive_miner)
-        self.run_cpuminer_button.grid(row=4, column=0, padx=10, pady=5)  
-
-
-        self.whive_cli_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-cli")
-
-        self.run_whive_button = tk.Button(frame, text="Run Whive SV2 Miner", state='disabled')
-        self.run_whive_button.grid(row=4, column=1, padx=10, pady=5)
+        self.run_cpuminer_button.grid(row=4, column=0, padx=10, pady=5)
 
         # Add a separator between Whive Core and Bitcoin Nerd Miner
         separator3 = tk.Frame(frame, height=2, bg="black", width=frame.winfo_width())
         separator3.grid(row=5, columnspan=3, pady=10, sticky='ew')
-
-        # Bitcoin Nerd Miner
-        self.run_bitcoin_nerd_miner_button = tk.Button(frame, text="Run Bitcoin Nerd Miner", state='disabled')
-        self.run_bitcoin_nerd_miner_button.grid(row=5, column=0, padx=10, pady=5, columnspan=3)
-
-        
 
         # Help and Quit
         self.help_button = tk.Button(frame, text="Help", command=self.display_help)
@@ -169,21 +147,56 @@ class InstallPage(tk.Frame):
         self.quit_button = tk.Button(frame, text="Quit", command=controller.quit)
         self.quit_button.grid(row=7, column=0, padx=10, pady=5, columnspan=3)
 
+    def create_bitcoin_conf(self, conf_path, prune=False):
+        """Create bitcoin.conf for either full node or pruned node."""
+
+        # Ensure the directory for the configuration exists
+        conf_dir = os.path.dirname(conf_path)
+        os.makedirs(conf_dir, exist_ok=True)
+
+        # Content of the configuration file
+        content = """
+        prune=550
+        daemon=1
+        """ if prune else """
+        daemon=1
+        """
+
+        # Write the configuration file
+        with open(conf_path, 'w') as file:
+            file.write(content)
+        self.update_output(f"bitcoin.conf created at {conf_path}")
+
     def check_storage_and_install_bitcoin(self):
         s = os.statvfs('/')
         free_space = s.f_frsize * s.f_bavail / (10**9)  # free space in GB
 
         if free_space > 600:
-            #self.install('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-osx64.tar.gz")
             threading.Thread(target=self.install, args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-osx64.tar.gz")).start()
         elif free_space > 10:
             self.install_pruned_bitcoin()
         else:
             self.update_output("Insufficient storage space for Bitcoin. Please free up some space and try again.")
 
+    def install_pruned_bitcoin(self):
+        """Install pruned version of Bitcoin Core and store config in ~/.bitcoin/pruned/."""
+        self.update_output("Installing pruned Bitcoin node...")
+
+        # Ensure the pruned config directory exists
+        pruned_dir = os.path.join(os.path.expanduser('~'), ".bitcoin/pruned")
+        os.makedirs(pruned_dir, exist_ok=True)
+
+        # Create pruned bitcoin.conf file
+        conf_path = os.path.join(pruned_dir, "bitcoin.conf")
+        self.create_bitcoin_conf(conf_path, prune=True)
+
+        threading.Thread(target=self.install, args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-osx64.tar.gz")).start()
+
     def run_mainnet(self):
-        # Define the mainnet path and execute it
+        """Run Bitcoin in mainnet mode with config from ~/.bitcoin/mainnet/bitcoin.conf."""
         bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
+        mainnet_conf_dir = os.path.join(os.path.expanduser('~'), ".bitcoin/mainnet")
+
         if not os.path.exists(bitcoin_path):
             bitcoin_path = "/Applications/Bitcoin-qt.app/Contents/MacOS/Bitcoin-qt"
 
@@ -191,146 +204,68 @@ class InstallPage(tk.Frame):
             self.update_output("Error: Could not find a valid Bitcoin installation.")
             return
 
-        self.run_software(bitcoin_path)
+        # Ensure mainnet config directory exists and create if not
+        os.makedirs(mainnet_conf_dir, exist_ok=True)
+        conf_path = os.path.join(mainnet_conf_dir, "bitcoin.conf")
+        if not os.path.exists(conf_path):
+            self.create_bitcoin_conf(conf_path, prune=False)
 
-    def create_bitcoin_conf(self, conf_path):
-        #  configuration content
-        content = """
-         prune=550
-         daemon=1
-         """
-    
-        with open(conf_path, 'w') as file:
-            file.write(content)
-
+        # Run the Bitcoin Core with the mainnet configuration
+        self.run_software(bitcoin_path, f"-conf={conf_path}")
 
     def run_pruned_node(self):
-        # Path to the bitcoin-qt executable
+        """Run pruned Bitcoin node with config from ~/.bitcoin/pruned/bitcoin.conf."""
         pruned_bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
-    
-        # Path to the pruned node data directory
-        pruned_data_dir = os.path.join(os.path.expanduser('~'), "pruned-node")
+        pruned_conf_dir = os.path.join(os.path.expanduser('~'), ".bitcoin/pruned")
 
-        # Path to the bitcoin.conf in the pruned node data directory
-        bitcoin_conf_path = os.path.join(pruned_data_dir, "bitcoin.conf")
-    
-        # Create bitcoin.conf if it doesn't exist
-        if not os.path.exists(bitcoin_conf_path):
-            self.create_bitcoin_conf(bitcoin_conf_path)
-            self.update_output("bitcoin.conf created in pruned-node directory.")
-
-        # Check if bitcoin-qt exists
         if not os.path.exists(pruned_bitcoin_path):
             self.update_output("Error: Could not find the pruned Bitcoin node installation.")
             return
 
-        # Command structure
-        command = [pruned_bitcoin_path, f'--datadir={pruned_data_dir}']
+        # Ensure pruned config directory exists
+        conf_path = os.path.join(pruned_conf_dir, "bitcoin.conf")
+        if not os.path.exists(conf_path):
+            self.create_bitcoin_conf(conf_path, prune=True)
 
-        # Run the software and capture output for debugging
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
+        # Run the pruned Bitcoin node with the pruned configuration
+        self.run_software(pruned_bitcoin_path, f"--datadir={pruned_conf_dir}", f"-conf={conf_path}")
 
-        if process.returncode != 0:
-            self.update_output("Error running pruned Bitcoin node.")
-            self.update_output("STDOUT: " + stdout.decode())
-            self.update_output("STDERR: " + stderr.decode())
-        else:
-            self.update_output("Pruned Bitcoin node started successfully.")
+    def run_bitcoin_miner(self):
+        disclaimer_text = ("Disclaimer: Running the CPU miner in Melanin Click for an extended period of time on your machine may result "
+                        "in increased wear and tear, overheating, and decreased performance of your hardware. Prolonged mining operations "
+                        "have been known to consume significant electrical resources and may potentially lead to hardware failure. We highly "
+                        "recommend using a dedicated machine equipped with adequate cooling mechanisms for mining activities. This is a summary "
+                        "of potential risks, and we encourage you to refer to the entire disclaimer for a comprehensive understanding of the terms and conditions.")
 
-    def create_whive_conf(self):
-        conf_dir = os.path.expanduser('~/Library/Application Support/Whive')
-        os.makedirs(conf_dir, exist_ok=True)
+        agreement = messagebox.askyesno("Disclaimer", disclaimer_text)
 
-        rpc_username, rpc_password = self.generate_random_credentials()
-        conf_content = f"""
-        server=1
-        daemon=1
-        rpcuser={rpc_username}
-        rpcpassword={rpc_password}
-        rpcport=1867
-        """
+        if not agreement:
+            return
 
-        conf_path = os.path.join(conf_dir, "whive.conf")
-        with open(conf_path, "w") as conf_file:
-            conf_file.write(conf_content)
+        bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
+        machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
 
-        self.update_output("whive.conf created/updated successfully in the default folder.")
+        while not bitcoin_address or not machine_name:
+            messagebox.showwarning("Warning", "Please provide valid Bitcoin address and machine name.")
+            bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
+            machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
 
-    @staticmethod
-    def generate_random_credentials():
-        alphabet = string.ascii_letters + string.digits
-        username = ''.join(secrets.choice(alphabet) for i in range(8))
-        password = ''.join(secrets.choice(alphabet) for i in range(16))
-        return username, password
+        self.update_output(f"Bitcoin Address: {bitcoin_address}")
+        self.update_output(f"Machine Name: {machine_name}")
 
-    def get_whive_address(self):
-        try:
-            # Run the whive-cli command to create a new address
-            process = subprocess.Popen([self.whive_cli_path, 'getnewaddress'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate()
+        minerd_path = os.path.expanduser('~/cpuminer-opt-mac/cpuminer-sse2')
 
-            # Check if the process ran successfully
-            if process.returncode == 0:
-                new_address = stdout.decode().strip()
-                self.update_output(f"New Whive Address: {new_address}")
-                self.whive_address_label.config(text=f"Whive Address: {new_address}")
-            else:
-                self.update_output(f"Error creating new Whive address: {stderr.decode()}")
-        except Exception as e:
-            self.update_output(f"Error creating new Whive address: {str(e)}")
+        if not os.path.exists(minerd_path):
+            self.update_output("Bitcoin miner not found. Downloading and extracting...")
+            download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.36/cpuminer-opt-mac.tar.gz"
+            self.download_and_extract_miner(download_url)
 
+        cmd = f'{minerd_path} -a sha256d -o stratum+tcp://public-pool.io:21496 -u {bitcoin_address}.{machine_name} -p x'
 
-
-    def install_whive(self):
-        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-osx64.tar.gz")).start()
-
-    def schedule_update_output(self, message):
-        self.after(0, self.update_output, message)
-
-    def install(self, software, download_url):
-        self.update_output(f"Installing {software}...")
-
-        install_path = os.path.join(os.path.expanduser('~'), f"{software}-core")
-        downloaded_file = os.path.join(install_path, f"{software}.tar.gz")
-
-        # Create installation directory if it doesn't exist
-        os.makedirs(install_path, exist_ok=True)
-        self.update_output(f"Created installation directory at {install_path}")
-
-        # Download the file
-        self.update_output(f"Downloading {software} from {download_url}")
-        urllib.request.urlretrieve(download_url, downloaded_file)
-
-        """ # Extract the tarball and delete it
-        self.update_output("Extracting tarball...")
-        with tarfile.open(downloaded_file, "r:gz") as tar:
-            tar.extractall(path=install_path)
-        os.remove(downloaded_file)
-        self.update_output(f"{software} installation complete!") """
-
-        self.schedule_update_output("Extracting tarball...")
-        with tarfile.open(downloaded_file, "r:gz") as tar:
-            tar.extractall(path=install_path)
-        os.remove(downloaded_file)
-        self.schedule_update_output(f"{software} installation complete!")
-        
-        # Enable the respective run buttons
-        if software == 'whive':
-            self.run_whive_button.config(state='normal')
-        elif software.startswith('bitcoin'):
-            self.run_bitcoin_button.config(state='normal')
-
-        self.quit_button.config(state='normal')
-
-    def run_whive(self):
-        whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt")
-        self.run_software(whive_path)
-
-    def run_bitcoin(self):
-        # Assuming the binary name is 'bitcoin-qt' for now
-        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
-        self.run_software(bitcoin_path)
+        # macOS: Open a new terminal window and run the miner command
+        osascript_cmd = f'osascript -e \'tell application "Terminal" to do script "{cmd}"\''
+        subprocess.Popen(osascript_cmd, shell=True)
+        self.update_output("Opened a new terminal for Bitcoin mining.")
 
     def download_and_extract_miner(self, url, extract_to='~/cpuminer-opt-mac'):
         extract_to = os.path.expanduser(extract_to)
@@ -347,23 +282,19 @@ class InstallPage(tk.Frame):
             self.update_output(f"Error in downloading or extracting the miner: {e}")
 
     def run_whive_miner(self):
-        # Display the disclaimer
         disclaimer_text = ("Disclaimer: Running the CPU miner in Melanin Click for an extended period of time on your machine may result "
-                           "in increased wear and tear, overheating, and decreased performance of your hardware. Prolonged mining operations "
-                           "have been known to consume significant electrical resources and may potentially lead to hardware failure. We highly "
-                           "recommend using a dedicated machine equipped with adequate cooling mechanisms for mining activities. This is a summary "
-                           "of potential risks, and we encourage you to refer to the entire disclaimer for a comprehensive understanding of the terms and conditions.")
+                        "in increased wear and tear, overheating, and decreased performance of your hardware. Prolonged mining operations "
+                        "have been known to consume significant electrical resources and may potentially lead to hardware failure. We highly "
+                        "recommend using a dedicated machine equipped with adequate cooling mechanisms for mining activities. This is a summary "
+                        "of potential risks, and we encourage you to refer to the entire disclaimer for a comprehensive understanding of the terms and conditions.")
 
         agreement = msgbox.askyesno("Disclaimer", disclaimer_text)
 
-        # Only proceed if the user clicks 'Yes'
         if not agreement:
             return
 
-        # Prompt the user to enter their Whive address
         address = simpledialog.askstring("Input", "Please enter your Whive address:")
 
-        # Continuously ask for the address until a valid address is provided
         while not address:
             messagebox.showwarning("Warning", "Please provide a valid Whive address.")
             address = simpledialog.askstring("Input", "Please enter your Whive address:")
@@ -373,39 +304,65 @@ class InstallPage(tk.Frame):
 
         minerd_path = os.path.expanduser('~/cpuminer-opt-mac/cpuminer-sse2')
 
-        # Verify the path to the minerd exists
         if not os.path.exists(minerd_path):
-            self.update_output("Miner executable not found. Downloading and extracting...")
+            self.update_output("Whive miner not found. Downloading and extracting...")
             download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.36/cpuminer-opt-mac.tar.gz"
             self.download_and_extract_miner(download_url)
 
-        cmd = [minerd_path, "-a", "yespower", "-o", "stratum+tcp://206.189.2.17:3333", "-u", f"{address}.w1", "-t", "2"]
+        cmd = f'{minerd_path} -a yespower -o stratum+tcp://206.189.2.17:3333 -u {address}.w1 -t 2'
 
-        # Print the command for debugging
-        print("Executing:", " ".join(cmd))
+        # macOS: Open a new terminal window and run the miner command
+        osascript_cmd = f'osascript -e \'tell application "Terminal" to do script "{cmd}"\''
+        subprocess.Popen(osascript_cmd, shell=True)
+        self.update_output("Opened a new terminal for Whive mining.")
 
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=os.path.dirname(minerd_path), bufsize=1, universal_newlines=True)
 
-        # Use a thread to read the output of the miner and update the GUI in real-time
-        #threading.Thread(target=read_from_process, args=(process, self.whive_output)).start()
-        threading.Thread(target=self.read_from_process, args=(process, self.output)).start()
+    def schedule_update_output(self, message):
+        self.after(0, self.update_output, message)
+
+    def install_whive(self):
+        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-osx64.tar.gz")).start()
+
+    def install(self, software, download_url):
+        self.update_output(f"Installing {software}...")
+
+        install_path = os.path.join(os.path.expanduser('~'), f"{software}-core")
+        downloaded_file = os.path.join(install_path, f"{software}.tar.gz")
+
+        os.makedirs(install_path, exist_ok=True)
+        self.update_output(f"Created installation directory at {install_path}")
+
+        urllib.request.urlretrieve(download_url, downloaded_file)
+
+        self.schedule_update_output("Extracting tarball...")
+        with tarfile.open(downloaded_file, "r:gz") as tar:
+            tar.extractall(path=install_path)
+        os.remove(downloaded_file)
+        self.schedule_update_output(f"{software} installation complete!")
+
+        if software == 'whive':
+            self.run_whive_button.config(state='normal')
+        elif software.startswith('bitcoin'):
+            self.run_bitcoin_button.config(state='normal')
+
+        self.quit_button.config(state='normal')
+
+    def run_whive(self):
+        whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt")
+        self.run_software(whive_path)
 
     def run_software(self, software_path, *args):
         self.update_output(f"Running software from {software_path}")
         subprocess.Popen([software_path, *args])
 
     def display_help(self):
-        # Placeholder: display some kind of help or open a help file. For this example, I'm just updating the output with a message.
         self.update_output("This is the help section. You can add instructions here or open a help file.")
 
     def update_output(self, message):
-        self.output.config(state='normal')  # Enable text box
-        self.output.insert('end', message + "\n")  # Insert new message
-        self.output.config(state='disabled')  # Disable text box
-        self.output.see('end')  # Scroll to end
-        # Assuming you have a Text widget or similar in your GUI to display messages
-        #self.output_text_widget.insert(tk.END, message + "\n")
-        #self.output_text_widget.yview(tk.END)  # Scroll to the end
+        self.output.config(state='normal')
+        self.output.insert('end', message + "\n")
+        self.output.config(state='disabled')
+        self.output.see('end')
 
 app = Application()
 app.mainloop()
