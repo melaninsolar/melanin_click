@@ -47,8 +47,9 @@ jobs:
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x appimagetool-x86_64.AppImage
         pyinstaller --onefile --name melaninclick_linux --icon=assets/icons/myicon.png melaninclick_linux.py
-        mv dist/melaninclick_linux dist/melaninclick
-        ./appimagetool-x86_64.AppImage dist/melaninclick --no-appstream
+        ls dist  # List contents of dist directory for debugging
+        mv dist/melaninclick_linux dist/melaninclick-linux-x86_64.AppImage
+        ./appimagetool-x86_64.AppImage dist/melaninclick-linux-x86_64.AppImage --no-appstream
 
     # macOS x86_64
     - name: Build binary with PyInstaller for macOS x86_64
