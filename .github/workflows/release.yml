@@ -33,7 +33,10 @@ jobs:
         python-version: '3.9'
 
     - name: Install PyInstaller
-      run: pip install pyinstaller
+      run: |
+        for i in 1 2 3; do
+          pip install pyinstaller && break || sleep 10;
+        done
 
     # Linux x86_64
     - name: Build binary with PyInstaller for Linux x86_64
@@ -42,8 +45,9 @@ jobs:
         pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x appimagetool-x86_64.AppImage
-        ./appimagetool-x86_64.AppImage dist/melaninclick_linux
-        mv melaninclick_linux.AppImage dist/melaninclick-linux-x86_64.AppImage
+        ./appimagetool-x86_64.AppImage --appimage-extract
+        ./squashfs-root/AppRun dist/melaninclick_linux
+        mv dist/melaninclick_linux.AppImage dist/melaninclick-linux-x86_64.AppImage
 
     # Linux ARM64
     - name: Build binary with PyInstaller for Linux ARM64
@@ -52,9 +56,9 @@ jobs:
         pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage
         chmod +x appimagetool-aarch64.AppImage
-        ./appimagetool-aarch64.AppImage dist/melaninclick_linux
-        mv melaninclick_linux.AppImage dist/melaninclick-linux-arm64.AppImage
-
+        ./appimagetool-aarch64.AppImage --appimage-extract
+        ./squashfs-root/AppRun dist/melaninclick_linux
+        mv dist/melaninclick_linux.AppImage dist/melaninclick-linux-arm64.AppImage
 
     # macOS x86_64
     - name: Build binary with PyInstaller for macOS x86_64
@@ -73,44 +77,21 @@ jobs:
     # Windows x86_64
     - name: Build binary with PyInstaller for Windows x86_64
       if: matrix.os == 'windows-latest' && matrix.architecture == 'amd64'
-      run: pyinstaller --onefile --icon=assets/icons/myicon.ico melaninclick_windows.py
+      run: |
+        pyinstaller --onefile --icon=assets/icons/myicon.ico melaninclick_windows.py
+        mv dist/melaninclick_windows.exe dist/melaninclick-windows-x86_64.exe
 
-    # Create Release
+    # Create GitHub Release
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/')
-      run: |
-        gh release create ${{ github.ref }} \
-          --title "Release ${{ github.ref }}" \
-          --notes "Automated release of ${{ github.ref }}"
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/melaninclick-linux-x86_64.AppImage
+          dist/melaninclick-linux-arm64.AppImage
+          dist/melaninclick.dmg
+          dist/melaninclick-arm64.dmg
+          dist/melaninclick-windows-x86_64.exe
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set the token for gh
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    # Upload Linux Assets
-    - name: Upload Linux Assets
-      if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest'
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/melaninclick-linux-${{ matrix.architecture }}.AppImage
-        asset_name: melaninclick-${{ github.ref }}-linux-${{ matrix.architecture }}.AppImage
-        asset_content_type: application/octet-stream
-
-    # Upload macOS Assets
-    - name: Upload macOS Assets
-      if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'macos-latest'
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/melaninclick-${{ matrix.architecture }}.dmg
-        asset_name: melaninclick-${{ github.ref }}-macos-${{ matrix.architecture }}.dmg
-        asset_content_type: application/octet-stream
-
-    # Upload Windows Assets
-    - name: Upload Windows Assets
-      if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'windows-latest'
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/melaninclick_windows.exe
-        asset_name: melaninclick-${{ github.ref }}-windows-x86_64.exe
-        asset_content_type: application/octet-stream
