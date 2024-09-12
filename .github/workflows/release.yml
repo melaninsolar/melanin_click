@@ -27,8 +27,7 @@ jobs:
         python-version: '3.9'
 
     - name: Install PyInstaller
-      run: |
-        pip install pyinstaller
+      run: pip install pyinstaller
 
     - name: Build binary with PyInstaller for macOS
       run: |
@@ -40,8 +39,7 @@ jobs:
         fi
 
     - name: Install GitHub CLI (macOS)
-      run: |
-        brew install gh
+      run: brew install gh
 
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
@@ -54,15 +52,13 @@ jobs:
 
     - name: Upload macOS x86_64 DMG
       if: matrix.architecture == 'x86_64'
-      run: |
-        gh release upload ${{ github.ref }} dist/melaninclick.dmg
+      run: gh release upload ${{ github.ref }} dist/melaninclick.dmg
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload macOS ARM64 DMG
       if: matrix.architecture == 'arm64'
-      run: |
-        gh release upload ${{ github.ref }} dist/melaninclick-arm64.dmg
+      run: gh release upload ${{ github.ref }} dist/melaninclick-arm64.dmg
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -86,8 +82,7 @@ jobs:
       run: sudo apt-get install -y appstream fuse
 
     - name: Install PyInstaller
-      run: |
-        pip install pyinstaller
+      run: pip install pyinstaller
 
     - name: Build binary with PyInstaller for Linux x86_64
       run: |
@@ -99,13 +94,10 @@ jobs:
         ./appimagetool-x86_64.AppImage dist/melaninclick --no-appstream
 
     - name: Install GitHub CLI (Linux)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gh
+      run: sudo apt-get install -y gh
 
     - name: Upload Linux x86_64 AppImage
-      run: |
-        gh release upload ${{ github.ref }} dist/melaninclick-linux-x86_64.AppImage
+      run: gh release upload ${{ github.ref }} dist/melaninclick-linux-x86_64.AppImage
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -126,20 +118,25 @@ jobs:
         python-version: '3.9'
 
     - name: Install PyInstaller
-      run: |
-        pip install pyinstaller
+      run: pip install pyinstaller
 
     - name: Build binary with PyInstaller for Windows x86_64
       run: |
         pyinstaller --onefile --name melaninclick_windows --icon=assets/icons/myicon.ico melaninclick_windows.py --log-level=DEBUG
         mv dist/melaninclick_windows.exe dist/melaninclick-windows-x86_64.exe
 
-    - name: Install GitHub CLI (Windows)
+    - name: Ensure Chocolatey is installed
       run: |
-        choco install gh
+        if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+          Set-ExecutionPolicy Bypass -Scope Process -Force;
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
+          iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'));
+        }
+
+    - name: Install GitHub CLI (Windows)
+      run: choco install gh -y
 
     - name: Upload Windows x86_64 EXE
-      run: |
-        gh release upload ${{ github.ref }} dist/melaninclick-windows-x86_64.exe
+      run: gh release upload ${{ github.ref }} dist/melaninclick-windows-x86_64.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
