@@ -32,19 +32,21 @@ jobs:
       with:
         python-version: '3.9'
 
+    - name: Install Dependencies (Linux only)
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install appstream
+
     - name: Install PyInstaller
       run: |
-        for i in 1 2 3; do
-          pip install pyinstaller && break || sleep 10;
-        done
+        pip install pyinstaller
 
     # Linux x86_64
     - name: Build binary with PyInstaller for Linux x86_64
       if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'amd64'
       run: |
-        pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x appimagetool-x86_64.AppImage
+        pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
         ./appimagetool-x86_64.AppImage --appimage-extract
         ./squashfs-root/AppRun dist/melaninclick_linux
         mv dist/melaninclick_linux.AppImage dist/melaninclick-linux-x86_64.AppImage
@@ -53,9 +55,9 @@ jobs:
     - name: Build binary with PyInstaller for Linux ARM64
       if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'arm64'
       run: |
-        pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-aarch64.AppImage
         chmod +x appimagetool-aarch64.AppImage
+        pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
         ./appimagetool-aarch64.AppImage --appimage-extract
         ./squashfs-root/AppRun dist/melaninclick_linux
         mv dist/melaninclick_linux.AppImage dist/melaninclick-linux-arm64.AppImage
@@ -94,4 +96,3 @@ jobs:
           dist/melaninclick-windows-x86_64.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
