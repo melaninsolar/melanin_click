@@ -40,7 +40,7 @@ jobs:
         ls dist
 
     - name: Upload Build Artifacts (macOS)
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: macos-artifacts
         path: dist/melaninclick*.dmg
@@ -103,7 +103,7 @@ jobs:
         ls dist
 
     - name: Upload Build Artifacts (Linux)
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: linux-artifacts
         path: dist/melaninclick-linux-x86_64.AppImage
@@ -140,7 +140,7 @@ jobs:
         ls dist
 
     - name: Upload Build Artifacts (Windows)
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: windows-artifacts
         path: dist/melaninclick-windows-x86_64.exe
