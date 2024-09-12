@@ -71,11 +71,24 @@ jobs:
         pyinstaller --onefile --icon=assets/icons/myicon.ico melaninclick_windows.py --log-level=DEBUG
         mv dist/melaninclick_windows.exe dist/melaninclick-windows-x86_64.exe
 
-    # Install GitHub CLI
-    - name: Install GitHub CLI
+    # Install GitHub CLI (Linux)
+    - name: Install GitHub CLI (Linux)
+      if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gh || brew install gh
+        sudo apt-get install -y gh
+
+    # Install GitHub CLI (macOS)
+    - name: Install GitHub CLI (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install gh
+
+    # Install GitHub CLI (Windows)
+    - name: Install GitHub CLI (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install gh
 
     # Create GitHub Release using GitHub CLI
     - name: Create GitHub Release
