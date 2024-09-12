@@ -79,9 +79,10 @@ class InstallPage(tk.Frame):
         self.run_mainnet_button.grid(row=0, column=1, padx=10, pady=5)
         self.run_pruned_node_button = tk.Button(frame, text="Run Pruned Bitcoin Node", state='disabled', command=self.run_pruned_node)
         self.run_pruned_node_button.grid(row=0, column=2, padx=10, pady=5)
-        self.run_bitcoin_sv2_button = tk.Button(frame, text="Run Bitcoin SV2 Miner", state='disabled')
-        self.run_bitcoin_sv2_button.grid(row=1, column=1, padx=10, pady=5)
-        
+
+        self.public_pool_button = tk.Button(frame, text="Connect to Public Pool", command=self.run_bitcoin_miner)
+        self.public_pool_button.grid(row=1, column=1, padx=10, pady=5)
+
         separator1 = tk.Frame(frame, height=2, bg="grey", width=frame.winfo_width())
         separator1.grid(row=2, columnspan=3, pady=10, sticky='ew')
 
@@ -89,6 +90,9 @@ class InstallPage(tk.Frame):
         self.install_whive_button.grid(row=3, column=0, padx=10, pady=5)
         self.run_whive_button = tk.Button(frame, text="Run Whive Core", state='disabled', command=self.run_whive)
         self.run_whive_button.grid(row=3, column=1, padx=10, pady=5)
+
+        self.whive_address_label = tk.Label(self, text="Whive Address: None")
+        self.whive_address_label.pack()
         self.miner_button = tk.Button(frame, text="Run Whive Miner", command=self.run_whive_miner)
         self.miner_button.grid(row=3, column=2, padx=10, pady=5, columnspan=3)
 
@@ -152,47 +156,91 @@ class InstallPage(tk.Frame):
         else:
             self.update_output("Error: Could not find the pruned Bitcoin node installation. Please install first.")
 
-    def install_whive(self):
-        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-x86_64-linux-gnu.tar.gz")).start()
+    def run_bitcoin_miner(self):
+        disclaimer_text = ("Disclaimer: Running the CPU miner in Melanin Click for an extended period of time on your machine may result "
+                           "in increased wear and tear, overheating, and decreased performance of your hardware. Prolonged mining operations "
+                           "have been known to consume significant electrical resources and may potentially lead to hardware failure.")
+        agreement = messagebox.askyesno("Disclaimer", disclaimer_text)
 
-    def run_whive(self):
-        whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt")
-        self.run_software(whive_path)
-
-    def run_whive_miner(self):
-        # Display the disclaimer
-        disclaimer_text = ("Running the CPU miner can significantly affect your computer's performance and longevity. "
-                           "Do you want to continue?")
-        response = msgbox.askyesno("Disclaimer", disclaimer_text)
-        if not response:
-            return  # User chose not to proceed
-
-        # Prompt for Whive address
-        whive_address = simpledialog.askstring("Whive Address", "Please enter your Whive address:")
-        if not whive_address:
-            msgbox.showerror("Error", "You must enter a valid Whive address to continue.")
+        if not agreement:
             return
 
-        self.update_output(f"Starting miner with Whive address: {whive_address}")
-        threading.Thread(target=self.download_and_start_miner, args=(whive_address,)).start()
+        bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
+        machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
 
-    def download_and_start_miner(self, address):
-        miner_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.40/cpuminer-opt-linux-5.0.40.tar.gz"
-        miner_path = os.path.join(os.path.expanduser('~'), 'cpuminer-opt-linux')
+        while not bitcoin_address or not machine_name:
+            messagebox.showwarning("Warning", "Please provide valid Bitcoin address and machine name.")
+            bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
+            machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
+
+        self.update_output(f"Bitcoin Address: {bitcoin_address}")
+        self.update_output(f"Machine Name: {machine_name}")
+
+        minerd_path = os.path.expanduser('~/cpuminer-opt-linux/cpuminer')
+
+        if not os.path.exists(minerd_path):
+            self.update_output("Bitcoin miner not found. Downloading and extracting...")
+            download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.40/cpuminer-opt-linux-5.0.40.tar.gz"
+            self.download_and_extract_miner(download_url)
+
+        cmd = f'{minerd_path} -a sha256d -o stratum+tcp://public-pool.io:21496 -u {bitcoin_address}.{machine_name} -p x'
+
+        # Linux: Open a new terminal window and run the miner command
+        subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', cmd])
+        self.update_output("Opened a new terminal for Bitcoin mining.")
+
+    def run_whive_miner(self):
+        disclaimer_text = ("Disclaimer: Running the CPU miner in Melanin Click for an extended period of time on your machine may result "
+                           "in increased wear and tear, overheating, and decreased performance of your hardware. Prolonged mining operations "
+                           "have been known to consume significant electrical resources and may potentially lead to hardware failure.")
+        agreement = messagebox.askyesno("Disclaimer", disclaimer_text)
+
+        if not agreement:
+            return
+
+        whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
+
+        while not whive_address:
+            messagebox.showwarning("Warning", "Please provide a valid Whive address.")
+            whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
+
+        self.update_output(f"Whive Address: {whive_address}")
+
+        minerd_path = os.path.expanduser('~/cpuminer-opt-linux/cpuminer')
+
+        if not os.path.exists(minerd_path):
+            self.update_output("Whive miner not found. Downloading and extracting...")
+            download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.40/cpuminer-opt-linux-5.0.40.tar.gz"
+            self.download_and_extract_miner(download_url)
+
+        cmd = f'{minerd_path} -a yespower -o stratum+tcp://206.189.2.17:3333 -u {whive_address}.w1 -t 2'
+
+        # Linux: Open a new terminal window and run the miner command
+        subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', cmd])
+        self.update_output("Opened a new terminal for Whive mining.")
+
+    def download_and_extract_miner(self, url):
+        miner_path = os.path.expanduser('~/cpuminer-opt-linux')
         os.makedirs(miner_path, exist_ok=True)
         tar_path = os.path.join(miner_path, 'cpuminer-opt-linux.tar.gz')
 
-        # Download and extract miner
         self.update_output("Downloading and extracting miner...")
-        urllib.request.urlretrieve(miner_url, tar_path)
+        urllib.request.urlretrieve(url, tar_path)
         with tarfile.open(tar_path, "r:gz") as tar:
             tar.extractall(path=miner_path)
         os.remove(tar_path)
 
-        # Construct and run the miner command
-        executable = os.path.join(miner_path, 'cpuminer')  # Adjust based on actual executable name within the tar
-        cmd = [executable, "-a", "yespower", "-o", "stratum+tcp://206.189.2.17:3333", "-u", f"{address}.w1", "-t", "2"]
-        self.run_software(*cmd)
+    def run_whive(self):
+        """Run Whive Core"""
+        whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt")
+        
+        # Check if Whive Core is installed
+        if not os.path.exists(whive_path):
+            self.update_output("Error: Whive Core is not installed.")
+            return
+        
+        # Run the Whive Core software
+        self.run_software(whive_path)
 
     def run_software(self, *args):
         self.update_output(f"Running command: {' '.join(args)}")
@@ -203,7 +251,7 @@ class InstallPage(tk.Frame):
             self.update_output(f"Failed to start miner: {str(e)}")
 
     def display_help(self):
-        help_text = "Help Section: \nUse this application to install and manage Bitcoin, Lightning, and Whive software.\nFor more information, visit [Website URL]."
+        help_text = "Help Section: \nUse this application to install and manage Bitcoin, Lightning, and Whive software."
         self.update_output(help_text)
 
     def update_output(self, message):
