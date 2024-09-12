@@ -55,6 +55,7 @@ jobs:
         ./appimagetool-aarch64.AppImage dist/melaninclick_linux
         mv melaninclick_linux.AppImage dist/melaninclick-linux-arm64.AppImage
 
+
     # macOS x86_64
     - name: Build binary with PyInstaller for macOS x86_64
       if: matrix.os == 'macos-latest' && matrix.architecture == 'x86_64'
