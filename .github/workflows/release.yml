@@ -41,14 +41,27 @@ jobs:
     - name: Install GitHub CLI (macOS)
       run: brew install gh
 
-    - name: Create GitHub Release with Assets
+    - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
       run: |
-        gh release create ${{ github.ref }} \
-          --title "Release ${{ github.ref_name }}" \
-          --notes "Automated release of ${{ github.ref_name }}" \
-          dist/melaninclick.dmg \
-          dist/melaninclick-arm64.dmg
+        # Check if release already exists
+        if ! gh release view ${{ github.ref }}; then
+          gh release create ${{ github.ref }} \
+            --title "Release ${{ github.ref_name }}" \
+            --notes "Automated release of ${{ github.ref_name }}";
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload macOS x86_64 DMG
+      if: matrix.architecture == 'x86_64' && startsWith(github.ref, 'refs/tags/')
+      run: gh release upload ${{ github.ref }} dist/melaninclick.dmg
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload macOS ARM64 DMG
+      if: matrix.architecture == 'arm64' && startsWith(github.ref, 'refs/tags/')
+      run: gh release upload ${{ github.ref }} dist/melaninclick-arm64.dmg
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -79,11 +92,11 @@ jobs:
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x appimagetool-x86_64.AppImage
         pyinstaller --onefile --name melaninclick_linux --icon=assets/icons/myicon.png melaninclick_linux.py
-        ls dist  # List contents of dist directory for debugging
         mv dist/melaninclick_linux dist/melaninclick
         ./appimagetool-x86_64.AppImage dist/melaninclick --no-appstream
 
     - name: Upload Linux x86_64 AppImage
+      if: startsWith(github.ref, 'refs/tags/')
       run: gh release upload ${{ github.ref }} dist/melaninclick-linux-x86_64.AppImage
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -116,6 +129,7 @@ jobs:
       run: choco install gh -y
 
     - name: Upload Windows x86_64 EXE
+      if: startsWith(github.ref, 'refs/tags/')
       run: gh release upload ${{ github.ref }} dist/melaninclick-windows-x86_64.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
