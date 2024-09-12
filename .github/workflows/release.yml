@@ -7,100 +7,139 @@ on:
       - 'v*'
 
 jobs:
-  build-and-release:
+  build-macos:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            architecture: amd64
-          - os: windows-latest
-            architecture: amd64
           - os: macos-latest
             architecture: x86_64
           - os: macos-latest
             architecture: arm64
 
-    timeout-minutes: 120  # Increase timeout limit
-
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4  # Updated to v4 to support newer Node.js
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4  # Updated to v4 to support newer Node.js
+      uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-
-    - name: Install Dependencies (Linux only)
-      if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get install appstream
 
     - name: Install PyInstaller
       run: |
         pip install pyinstaller
 
-    # Linux x86_64
-    - name: Build binary with PyInstaller for Linux x86_64
-      if: matrix.os == 'ubuntu-latest' && matrix.architecture == 'amd64'
-      run: |
-        wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-        chmod +x appimagetool-x86_64.AppImage
-        pyinstaller --onefile --name melaninclick_linux --icon=assets/icons/myicon.png melaninclick_linux.py
-        ls dist  # List contents of dist directory for debugging
-        mv dist/melaninclick_linux dist/melaninclick-linux-x86_64.AppImage
-        ./appimagetool-x86_64.AppImage dist/melaninclick-linux-x86_64.AppImage --no-appstream
-
-    # macOS x86_64
-    - name: Build binary with PyInstaller for macOS x86_64
-      if: matrix.os == 'macos-latest' && matrix.architecture == 'x86_64'
+    - name: Build binary with PyInstaller for macOS
       run: |
         pyinstaller --onefile --name melaninclick_macos --icon=assets/icons/myicon.icns melaninclick_macos.py
-        hdiutil create dist/melaninclick.dmg -volname "MelaninClick" -srcfolder dist/melaninclick_macos
+        if [ "${{ matrix.architecture }}" == "x86_64" ]; then
+          hdiutil create dist/melaninclick.dmg -volname "MelaninClick" -srcfolder dist/melaninclick_macos;
+        else
+          hdiutil create dist/melaninclick-arm64.dmg -volname "MelaninClick" -srcfolder dist/melaninclick_macos;
+        fi
 
-    # macOS ARM64
-    - name: Build binary with PyInstaller for macOS ARM64
-      if: matrix.os == 'macos-latest' && matrix.architecture == 'arm64'
-      run: |
-        pyinstaller --onefile --name melaninclick_macos --icon=assets/icons/myicon.icns melaninclick_macos.py
-        hdiutil create dist/melaninclick-arm64.dmg -volname "MelaninClick" -srcfolder dist/melaninclick_macos
-
-    # Windows x86_64
-    - name: Build binary with PyInstaller for Windows x86_64
-      if: matrix.os == 'windows-latest' && matrix.architecture == 'amd64'
-      run: |
-        pyinstaller --onefile --name melaninclick_windows --icon=assets/icons/myicon.ico melaninclick_windows.py --log-level=DEBUG
-        mv dist/melaninclick_windows.exe dist/melaninclick-windows-x86_64.exe
-
-    # Install GitHub CLI (Linux)
-    - name: Install GitHub CLI (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gh
-
-    # Install GitHub CLI (macOS)
     - name: Install GitHub CLI (macOS)
-      if: matrix.os == 'macos-latest'
       run: |
         brew install gh
 
-    # Install GitHub CLI (Windows)
-    - name: Install GitHub CLI (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install gh
-
-    # Create GitHub Release using GitHub CLI
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
       run: |
         gh release create ${{ github.ref }} \
           --title "Release ${{ github.ref_name }}" \
-          --notes "Automated release of ${{ github.ref_name }}" \
-          dist/melaninclick-linux-x86_64.AppImage \
-          dist/melaninclick.dmg \
-          dist/melaninclick-arm64.dmg \
-          dist/melaninclick-windows-x86_64.exe
+          --notes "Automated release of ${{ github.ref_name }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload macOS x86_64 DMG
+      if: matrix.architecture == 'x86_64'
+      run: |
+        gh release upload ${{ github.ref }} dist/melaninclick.dmg
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload macOS ARM64 DMG
+      if: matrix.architecture == 'arm64'
+      run: |
+        gh release upload ${{ github.ref }} dist/melaninclick-arm64.dmg
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    needs: build-macos
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        architecture: [amd64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: sudo apt-get install -y appstream fuse
+
+    - name: Install PyInstaller
+      run: |
+        pip install pyinstaller
+
+    - name: Build binary with PyInstaller for Linux x86_64
+      run: |
+        wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+        chmod +x appimagetool-x86_64.AppImage
+        pyinstaller --onefile --name melaninclick_linux --icon=assets/icons/myicon.png melaninclick_linux.py
+        ls dist  # List contents of dist directory for debugging
+        mv dist/melaninclick_linux dist/melaninclick
+        ./appimagetool-x86_64.AppImage dist/melaninclick --no-appstream
+
+    - name: Install GitHub CLI (Linux)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gh
+
+    - name: Upload Linux x86_64 AppImage
+      run: |
+        gh release upload ${{ github.ref }} dist/melaninclick-linux-x86_64.AppImage
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-windows:
+    needs: build-linux
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        architecture: [amd64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install PyInstaller
+      run: |
+        pip install pyinstaller
+
+    - name: Build binary with PyInstaller for Windows x86_64
+      run: |
+        pyinstaller --onefile --name melaninclick_windows --icon=assets/icons/myicon.ico melaninclick_windows.py --log-level=DEBUG
+        mv dist/melaninclick_windows.exe dist/melaninclick-windows-x86_64.exe
+
+    - name: Install GitHub CLI (Windows)
+      run: |
+        choco install gh
+
+    - name: Upload Windows x86_64 EXE
+      run: |
+        gh release upload ${{ github.ref }} dist/melaninclick-windows-x86_64.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
