@@ -46,29 +46,29 @@ jobs:
       run: |
         wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x appimagetool-x86_64.AppImage
-        pyinstaller --onefile --icon=assets/icons/myicon.png melaninclick_linux.py
-        mv dist/melaninclick dist/melaninclick_linux
-        ./appimagetool-x86_64.AppImage dist/melaninclick_linux --no-appstream
+        pyinstaller --onefile --name melaninclick_linux --icon=assets/icons/myicon.png melaninclick_linux.py
+        mv dist/melaninclick_linux dist/melaninclick
+        ./appimagetool-x86_64.AppImage dist/melaninclick --no-appstream
 
     # macOS x86_64
     - name: Build binary with PyInstaller for macOS x86_64
       if: matrix.os == 'macos-latest' && matrix.architecture == 'x86_64'
       run: |
-        pyinstaller --onefile --icon=assets/icons/myicon.icns melaninclick_macos.py
+        pyinstaller --onefile --name melaninclick_macos --icon=assets/icons/myicon.icns melaninclick_macos.py
         hdiutil create dist/melaninclick.dmg -volname "MelaninClick" -srcfolder dist/melaninclick_macos
 
     # macOS ARM64
     - name: Build binary with PyInstaller for macOS ARM64
       if: matrix.os == 'macos-latest' && matrix.architecture == 'arm64'
       run: |
-        pyinstaller --onefile --icon=assets/icons/myicon.icns melaninclick_macos.py
+        pyinstaller --onefile --name melaninclick_macos --icon=assets/icons/myicon.icns melaninclick_macos.py
         hdiutil create dist/melaninclick-arm64.dmg -volname "MelaninClick" -srcfolder dist/melaninclick_macos
 
     # Windows x86_64
     - name: Build binary with PyInstaller for Windows x86_64
       if: matrix.os == 'windows-latest' && matrix.architecture == 'amd64'
       run: |
-        pyinstaller --onefile --icon=assets/icons/myicon.ico melaninclick_windows.py --log-level=DEBUG
+        pyinstaller --onefile --name melaninclick_windows --icon=assets/icons/myicon.ico melaninclick_windows.py --log-level=DEBUG
         mv dist/melaninclick_windows.exe dist/melaninclick-windows-x86_64.exe
 
     # Install GitHub CLI (Linux)
