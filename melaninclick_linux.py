@@ -75,7 +75,7 @@ class InstallPage(tk.Frame):
 
         self.install_bitcoin_button = tk.Button(frame, text="Install Bitcoin Core", command=lambda: threading.Thread(target=self.check_storage_and_install_bitcoin).start())
         self.install_bitcoin_button.grid(row=0, column=0, padx=10, pady=5)
-        self.run_mainnet_button = tk.Button(frame, text="Run Full Bitcoin Node", state='disabled', command=self.run_mainnet)
+        self.run_mainnet_button = tk.Button(frame, text="Run Full Bitcoin Node", state='disabled')
         self.run_mainnet_button.grid(row=0, column=1, padx=10, pady=5)
         self.run_pruned_node_button = tk.Button(frame, text="Run Pruned Bitcoin Node", state='disabled', command=self.run_pruned_node)
         self.run_pruned_node_button.grid(row=0, column=2, padx=10, pady=5)
@@ -144,7 +144,7 @@ class InstallPage(tk.Frame):
             self.run_pruned_node_button.config(state='normal')
 
     def install_whive(self):
-        whive_url = "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-x86_64-linux-gnu.tar.gz"
+        whive_url = "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz"
         self.update_output("Installing Whive Core...")
         install_path = os.path.join(os.path.expanduser('~'), "whive-core")
         downloaded_file = os.path.join(install_path, "whive.tar.gz")

@@ -103,7 +103,7 @@ class InstallPage(tk.Frame):
         self.install_bitcoin_button.grid(row=0, column=0, padx=10, pady=5)
 
         # Run Mainnet Bitcoin Core
-        self.run_mainnet_button = tk.Button(frame, text="Run Full Bitcoin Node", command=self.run_mainnet)
+        self.run_mainnet_button = tk.Button(frame, text="Run Full Bitcoin Node", state='disabled')
         self.run_mainnet_button.grid(row=0, column=1, padx=10, pady=5)
 
         # Run Pruned Bitcoin Node
@@ -321,7 +321,7 @@ class InstallPage(tk.Frame):
         self.after(0, self.update_output, message)
 
     def install_whive(self):
-        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-osx64.tar.gz")).start()
+        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-osx64.tar.gz")).start()
 
     def install(self, software, download_url):
         self.update_output(f"Installing {software}...")
