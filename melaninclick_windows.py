@@ -42,8 +42,7 @@ class StartPage(tk.Frame):
         label.pack(pady=10, padx=10, anchor='center')
 
         # Pack the button right below the welcome message
-        button = tk.Button(self, text="Next",
-                           command=lambda: controller.show_frame(TermsPage))
+        button = tk.Button(self, text="Next", command=lambda: controller.show_frame(TermsPage))
         button.pack(anchor='center')
 
 class TermsPage(tk.Frame):
@@ -55,13 +54,10 @@ class TermsPage(tk.Frame):
         self.text.pack(padx=5, pady=5)
 
         self.terms_accepted = tk.BooleanVar()
-        self.accept_button = tk.Checkbutton(self, text="I accept the Terms and Conditions",
-                                            variable=self.terms_accepted,
-                                            command=self.toggle_next_button)
+        self.accept_button = tk.Checkbutton(self, text="I accept the Terms and Conditions", variable=self.terms_accepted, command=self.toggle_next_button)
         self.accept_button.pack()
 
-        self.next_button = tk.Button(self, text="Next", state='disabled',
-                                     command=lambda: controller.show_frame(InstallPage))
+        self.next_button = tk.Button(self, text="Next", state='disabled', command=lambda: controller.show_frame(InstallPage))
         self.next_button.pack(pady=10)
 
         self.load_terms()
@@ -119,7 +115,7 @@ class InstallPage(tk.Frame):
         self.whive_address_label = tk.Label(self, text="Whive Address: None")
         self.whive_address_label.pack()
 
-        self.run_cpuminer_button = tk.Button(frame, text="Run Whive CpuMiner", command=self.run_whive_miner, state='disabled')
+        self.run_cpuminer_button = tk.Button(frame, text="Run Whive CpuMiner", command=self.run_whive_miner)
         self.run_cpuminer_button.grid(row=4, column=1, padx=10, pady=5)
 
         self.whive_cli_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-cli")
@@ -143,16 +139,17 @@ class InstallPage(tk.Frame):
             self.update_output("Insufficient storage space for Bitcoin. Please free up some space and try again.")
 
     def install_pruned_bitcoin(self):
-        self.install('bitcoin-pruned', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-win64.zip")
+        self.install('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-win64.zip")
         self.run_pruned_node_button.config(state='normal')
 
     def install_whive(self):
-        self.install('whive', "https://github.com/whiveio/whive/releases/download/v2.22.1/whive-2.22.1-win64.zip")
+        self.install('whive', "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-win64.zip")
 
     def install(self, software, download_url):
         self.update_output(f"Installing {software}...")
 
-        install_path = os.path.join(os.path.expanduser('~'), f"{software}-core")
+        # Use 'bitcoin-core' for both pruned and full installations
+        install_path = os.path.join(os.path.expanduser('~'), "bitcoin-core" if software == 'bitcoin' else f"{software}-core")
         downloaded_file = os.path.join(install_path, f"{software}.zip")  # Change extension to .zip
 
         # Create installation directory if it doesn't exist
@@ -176,10 +173,9 @@ class InstallPage(tk.Frame):
         # Enable the respective run buttons
         if software == 'whive':
             self.run_whive_button.config(state='normal')
-        elif software.startswith('bitcoin'):
+        elif software == 'bitcoin':
             self.run_bitcoin_button.config(state='normal')
-
-        self.quit_button.config(state='normal')
+            self.run_pruned_node_button.config(state='normal')
 
     def run_whive(self):
         whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt.exe")
@@ -219,14 +215,12 @@ class InstallPage(tk.Frame):
     def run_bitcoin_miner(self):
         # Display the disclaimer
         disclaimer_text = ("Disclaimer: Running the Bitcoin CPU miner in Melanin Click for an extended period of time on your machine may result "
-                           "in increased wear and tear, overheating, and decreased performance of your hardware. Prolonged mining operations "
-                           "have been known to consume significant electrical resources and may potentially lead to hardware failure.")
+                           "in increased wear and tear, overheating, and decreased performance of your hardware.")
         agreement = messagebox.askyesno("Disclaimer", disclaimer_text)
 
         if not agreement:
             return
 
-        # Prompt the user to enter their Bitcoin address and machine name
         bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
         machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
 
@@ -251,14 +245,19 @@ class InstallPage(tk.Frame):
     def run_whive_miner(self):
         # Display the disclaimer
         disclaimer_text = ("Disclaimer: Running the CPU miner in Melanin Click for an extended period of time on your machine may result "
-                           "in increased wear and tear, overheating, and decreased performance of your hardware. Prolonged mining operations "
-                           "have been known to consume significant electrical resources and may potentially lead to hardware failure.")
+                           "in increased wear and tear, overheating, and decreased performance of your hardware.")
         agreement = messagebox.askyesno("Disclaimer", disclaimer_text)
 
         if not agreement:
             return
 
-        whive_address = self.whive_address_label.cget("text").split(":")[1].strip()
+        whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
+
+        while not whive_address:
+            messagebox.showwarning("Warning", "Please provide a valid Whive address.")
+            whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
+
+        self.whive_address_label.config(text=f"Whive Address: {whive_address}")
         cpuminer_path = os.path.expanduser('~/cpuminer-opt-win-5.0.40/cpuminer-sse2.exe')
         
         if not os.path.exists(cpuminer_path):
