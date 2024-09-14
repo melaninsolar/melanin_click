@@ -5,7 +5,6 @@ import tarfile
 import threading
 import subprocess
 from tkinter import messagebox, simpledialog
-from PIL import Image, ImageTk
 
 class Application(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -75,7 +74,7 @@ class InstallPage(tk.Frame):
 
         self.install_bitcoin_button = tk.Button(frame, text="Install Bitcoin Core", command=lambda: threading.Thread(target=self.check_storage_and_install_bitcoin).start())
         self.install_bitcoin_button.grid(row=0, column=0, padx=10, pady=5)
-        self.run_mainnet_button = tk.Button(frame, text="Run Full Bitcoin Node", state='disabled')
+        self.run_mainnet_button = tk.Button(frame, text="Run Full Bitcoin Node", state='disabled', command=self.run_mainnet)
         self.run_mainnet_button.grid(row=0, column=1, padx=10, pady=5)
         self.run_pruned_node_button = tk.Button(frame, text="Run Pruned Bitcoin Node", state='disabled', command=self.run_pruned_node)
         self.run_pruned_node_button.grid(row=0, column=2, padx=10, pady=5)
@@ -99,9 +98,6 @@ class InstallPage(tk.Frame):
         separator2 = tk.Frame(frame, height=2, bg="grey", width=frame.winfo_width())
         separator2.grid(row=5, columnspan=3, pady=10, sticky='ew')
 
-        self.miner_button = tk.Button(frame, text="Run Whive SV2 Miner", state='disabled')
-        self.miner_button.grid(row=5, column=0, padx=10, pady=5, columnspan=3)
-
         self.help_button = tk.Button(frame, text="Help", command=self.display_help)
         self.help_button.grid(row=6, column=0, padx=10, pady=5, columnspan=3)
         self.quit_button = tk.Button(frame, text="Quit", command=self.controller.quit)
@@ -119,12 +115,12 @@ class InstallPage(tk.Frame):
             self.update_output("Insufficient storage space for Bitcoin. Please free up some space and try again.")
 
     def install_pruned_bitcoin(self):
-        self.install('bitcoin-pruned', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-x86_64-linux-gnu.tar.gz")
+        self.install('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-x86_64-linux-gnu.tar.gz")
         self.run_pruned_node()
 
     def install(self, software, download_url):
         self.update_output(f"Installing {software}...")
-        install_path = os.path.join(os.path.expanduser('~'), f"{software}-core")
+        install_path = os.path.join(os.path.expanduser('~'), "bitcoin-core")
         downloaded_file = os.path.join(install_path, f"{software}.tar.gz")
         os.makedirs(install_path, exist_ok=True)
         self.update_output(f"Downloading {software} from {download_url}")
@@ -134,44 +130,36 @@ class InstallPage(tk.Frame):
             tar.extractall(path=install_path)
         os.remove(downloaded_file)
         self.update_output(f"{software} installation complete!")
-        self.after(0, self.enable_buttons, software)
-
-    def enable_buttons(self, software):
-        if software == 'whive':
-            self.run_whive_button.config(state='normal')
-        elif software.startswith('bitcoin'):
-            self.run_mainnet_button.config(state='normal')
-            self.run_pruned_node_button.config(state='normal')
-
-    def install_whive(self):
-        whive_url = "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz"
-        self.update_output("Installing Whive Core...")
-        install_path = os.path.join(os.path.expanduser('~'), "whive-core")
-        downloaded_file = os.path.join(install_path, "whive.tar.gz")
-        
-        os.makedirs(install_path, exist_ok=True)
-        urllib.request.urlretrieve(whive_url, downloaded_file)
-        
-        self.update_output("Extracting Whive Core tarball...")
-        with tarfile.open(downloaded_file, "r:gz") as tar:
-            tar.extractall(path=install_path)
-        os.remove(downloaded_file)
-        
-        self.update_output("Whive Core installation complete!")
-        self.run_whive_button.config(state='normal')
+        self.run_mainnet_button.config(state='normal')
+        self.run_pruned_node_button.config(state='normal')
 
     def run_mainnet(self):
         bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
         self.run_software(bitcoin_path)
 
     def run_pruned_node(self):
-        pruned_data_dir = os.path.join(os.path.expanduser('~'), "bitcoin-pruned-node")
-        bitcoin_path = os.path.join(pruned_data_dir, "bitcoin-22.0", "bin", "bitcoin-qt")
+        pruned_data_dir = os.path.join(os.path.expanduser('~'), "bitcoin-core-pruned")
+        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
+
+        if not os.path.exists(pruned_data_dir):
+            os.makedirs(pruned_data_dir)
+        bitcoin_conf_path = os.path.join(pruned_data_dir, "bitcoin.conf")
+        if not os.path.exists(bitcoin_conf_path):
+            self.create_bitcoin_conf(bitcoin_conf_path)
+
         if os.path.exists(bitcoin_path):
-            command = [bitcoin_path, f'--datadir={pruned_data_dir}']
-            self.run_software(*command)
+            self.run_software(bitcoin_path, f'--datadir={pruned_data_dir}')
         else:
             self.update_output("Error: Could not find the pruned Bitcoin node installation. Please install first.")
+
+    def create_bitcoin_conf(self, conf_path):
+        conf_content = """
+        prune=550
+        daemon=1
+        """
+        with open(conf_path, 'w') as conf_file:
+            conf_file.write(conf_content)
+        self.update_output("Created pruned bitcoin.conf file.")
 
     def run_bitcoin_miner(self):
         disclaimer_text = ("Disclaimer: Running the CPU miner in Melanin Click for an extended period of time on your machine may result "
@@ -246,6 +234,23 @@ class InstallPage(tk.Frame):
         with tarfile.open(tar_path, "r:gz") as tar:
             tar.extractall(path=miner_path)
         os.remove(tar_path)
+
+    def install_whive(self):
+        whive_url = "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz"
+        self.update_output("Installing Whive Core...")
+        install_path = os.path.join(os.path.expanduser('~'), "whive-core")
+        downloaded_file = os.path.join(install_path, "whive.tar.gz")
+        
+        os.makedirs(install_path, exist_ok=True)
+        urllib.request.urlretrieve(whive_url, downloaded_file)
+        
+        self.update_output("Extracting Whive Core tarball...")
+        with tarfile.open(downloaded_file, "r:gz") as tar:
+            tar.extractall(path=install_path)
+        os.remove(downloaded_file)
+        
+        self.update_output("Whive Core installation complete!")
+        self.run_whive_button.config(state='normal')
 
     def run_whive(self):
         """Run Whive Core"""
