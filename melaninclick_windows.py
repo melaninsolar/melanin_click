@@ -5,9 +5,9 @@ import zipfile
 import threading
 import subprocess
 from tkinter import simpledialog, messagebox
-from PIL import Image, ImageTk
 import requests
 import psutil
+
 
 class Application(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -33,17 +33,17 @@ class Application(tk.Tk):
         frame = self.frames[page]
         frame.tkraise()
 
+
 class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
-        # Pack the text label right below the image
         label = tk.Label(self, text="Welcome to the Installation Wizard!")
         label.pack(pady=10, padx=10, anchor='center')
 
-        # Pack the button right below the welcome message
         button = tk.Button(self, text="Next", command=lambda: controller.show_frame(TermsPage))
         button.pack(anchor='center')
+
 
 class TermsPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -79,6 +79,7 @@ class TermsPage(tk.Frame):
         self.text.insert('end', html)
         self.text.config(state='disabled')
 
+
 class InstallPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -89,97 +90,87 @@ class InstallPage(tk.Frame):
         frame = tk.Frame(self)
         frame.pack(pady=20, padx=20)
 
-        # Bitcoin Core
-        self.install_bitcoin_button = tk.Button(frame, text="Install Bitcoin Core", command=self.check_storage_and_install_bitcoin)
-        self.install_bitcoin_button.grid(row=0, column=0, padx=10, pady=5)
+        # Section Titles
+        tk.Label(frame, text="BITCOIN CORE WALLET & MINER", font=("Helvetica", 14, "bold")).grid(row=0, column=0, pady=10)
 
-        self.run_bitcoin_button = tk.Button(frame, text="Run Bitcoin Core", state='disabled', command=self.run_bitcoin)
-        self.run_bitcoin_button.grid(row=0, column=1, padx=10, pady=5)
+        # Bitcoin Core Installation
+        self.install_bitcoin_button = tk.Button(frame, text="STEP 1: Install Bitcoin Core Wallet", command=self.install_bitcoin)
+        self.install_bitcoin_button.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+
+        # Run Full Bitcoin Core
+        self.run_bitcoin_button = tk.Button(frame, text="STEP 2: Run Full Bitcoin Node", state='disabled', command=self.run_bitcoin)
+        self.run_bitcoin_button.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+
+        # Run Bitcoin Miner
+        self.connect_public_pool_button = tk.Button(frame, text="STEP 3: Run Bitcoin Pool Miner (SV1)", state='disabled', command=self.run_bitcoin_miner)
+        self.connect_public_pool_button.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 
         # Run Pruned Bitcoin Node
-        self.run_pruned_node_button = tk.Button(frame, text="Run Pruned Bitcoin Node", state='disabled', command=self.run_pruned_node)
-        self.run_pruned_node_button.grid(row=1, column=1, padx=10, pady=5)
+        self.run_pruned_node_button = tk.Button(frame, text="STEP 4: Run Pruned Bitcoin Node", state='disabled', command=self.run_pruned_node)
+        self.run_pruned_node_button.grid(row=4, column=0, padx=10, pady=5, sticky="w")
 
-        # Connect to Public Pool for Bitcoin Miner
-        self.connect_public_pool_button = tk.Button(frame, text="Connect to Public Pool", command=self.run_bitcoin_miner)
-        self.connect_public_pool_button.grid(row=2, column=1, padx=10, pady=5)
+        separator1 = tk.Frame(frame, height=2, bg="grey", width=frame.winfo_width())
+        separator1.grid(row=5, columnspan=1, pady=10, sticky='ew')
 
-        # Whive Core
-        self.install_whive_button = tk.Button(frame, text="Install Whive Core", command=self.install_whive)
-        self.install_whive_button.grid(row=3, column=0, padx=10, pady=5)
+        tk.Label(frame, text="WHIVE CORE WALLET & MINER", font=("Helvetica", 14, "bold")).grid(row=6, column=0, pady=10)
 
-        self.run_whive_button = tk.Button(frame, text="Run Whive Core", state='disabled', command=self.run_whive)
-        self.run_whive_button.grid(row=3, column=1, padx=10, pady=5)
+        # Whive Core Installation
+        self.install_whive_button = tk.Button(frame, text="STEP 1: Install Whive Core Wallet", command=self.install_whive)
+        self.install_whive_button.grid(row=7, column=0, padx=10, pady=5, sticky="w")
 
-        # Whive CpuMiner section
-        self.whive_address_label = tk.Label(self, text="Whive Address: None")
-        self.whive_address_label.pack()
+        # Run Full Whive Node
+        self.run_whive_button = tk.Button(frame, text="STEP 2: Run Full Whive Node", state='disabled', command=self.run_whive)
+        self.run_whive_button.grid(row=8, column=0, padx=10, pady=5, sticky="w")
 
-        self.run_cpuminer_button = tk.Button(frame, text="Run Whive CpuMiner", command=self.run_whive_miner)
-        self.run_cpuminer_button.grid(row=4, column=1, padx=10, pady=5)
+        # Run Whive Miner
+        self.run_cpuminer_button = tk.Button(frame, text="STEP 3: Run Whive Pool Miner (SV1)", state='disabled', command=self.run_whive_miner)
+        self.run_cpuminer_button.grid(row=9, column=0, padx=10, pady=5, sticky="w")
 
-        self.whive_cli_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-cli")
+        separator2 = tk.Frame(frame, height=2, bg="grey", width=frame.winfo_width())
+        separator2.grid(row=10, columnspan=1, pady=10, sticky='ew')
 
-        # Help and Quit
+        # Help and Quit buttons
         self.help_button = tk.Button(frame, text="Help", command=self.display_help)
-        self.help_button.grid(row=5, column=0, padx=10, pady=5, columnspan=2)
+        self.help_button.grid(row=11, column=0, padx=10, pady=5, sticky="w")
 
         self.quit_button = tk.Button(frame, text="Quit", command=controller.quit)
-        self.quit_button.grid(row=6, column=0, padx=10, pady=5, columnspan=2)
+        self.quit_button.grid(row=12, column=0, padx=10, pady=5, sticky="w")
 
-    def check_storage_and_install_bitcoin(self):
-        obj_Disk = psutil.disk_usage('C:/')  # Use the drive where you want to install
-        free_space = obj_Disk.free / (10**9)  # free space in GB
-
-        if free_space > 600:
-            self.install('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-win64.zip")
-        elif free_space > 10:
-            self.install_pruned_bitcoin()
-        else:
-            self.update_output("Insufficient storage space for Bitcoin. Please free up some space and try again.")
-
-    def install_pruned_bitcoin(self):
-        self.install('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-win64.zip")
-        self.run_pruned_node_button.config(state='normal')
-
-    def install_whive(self):
-        self.install('whive', "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-win64.zip")
-
-    def install(self, software, download_url):
-        self.update_output(f"Installing {software}...")
-
-        # Use 'bitcoin-core' for both pruned and full installations
-        install_path = os.path.join(os.path.expanduser('~'), "bitcoin-core" if software == 'bitcoin' else f"{software}-core")
-        downloaded_file = os.path.join(install_path, f"{software}.zip")  # Change extension to .zip
-
-        # Create installation directory if it doesn't exist
+    def install_bitcoin(self):
+        self.update_output("Installing Bitcoin Core... This process may take 1-2 minutes, please be patient.")
+        install_path = os.path.join(os.path.expanduser('~'), "bitcoin-core")
+        downloaded_file = os.path.join(install_path, "bitcoin.zip")
         os.makedirs(install_path, exist_ok=True)
-        self.update_output(f"Created installation directory at {install_path}")
 
-        # Download the file using requests
-        self.update_output(f"Downloading {software} from {download_url}")
-        response = requests.get(download_url, stream=True)
-        with open(downloaded_file, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+        download_url = "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-win64.zip"
+        urllib.request.urlretrieve(download_url, downloaded_file)
 
-        # Extract the zip and delete it
-        self.update_output("Extracting zip file...")
+        self.update_output("Extracting Bitcoin Core zip file...")
         with zipfile.ZipFile(downloaded_file, 'r') as zip_ref:
             zip_ref.extractall(path=install_path)
         os.remove(downloaded_file)
-        self.update_output(f"{software} installation complete!")
 
-        # Enable the respective run buttons
-        if software == 'whive':
-            self.run_whive_button.config(state='normal')
-        elif software == 'bitcoin':
-            self.run_bitcoin_button.config(state='normal')
-            self.run_pruned_node_button.config(state='normal')
+        self.update_output("BITCOIN CORE WALLET INSTALLED SUCCESSFULLY.\nYou can now:\n - RUN FULL BITCOIN NODE (STEP 2)\n - RUN BITCOIN POOL MINER (STEP 3)")
+        self.run_bitcoin_button.config(state='normal')
+        self.connect_public_pool_button.config(state='normal')
 
-    def run_whive(self):
-        whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt.exe")
-        self.run_software(whive_path)
+    def install_whive(self):
+        self.update_output("Installing Whive Core... This process may take 1-2 minutes, please be patient.")
+        install_path = os.path.join(os.path.expanduser('~'), "whive-core")
+        downloaded_file = os.path.join(install_path, "whive.zip")
+        os.makedirs(install_path, exist_ok=True)
+
+        download_url = "https://github.com/whiveio/whive_releases/releases/download/22.2.3/whive-22.2.3-win64.zip"
+        urllib.request.urlretrieve(download_url, downloaded_file)
+
+        self.update_output("Extracting Whive Core zip file...")
+        with zipfile.ZipFile(downloaded_file, 'r') as zip_ref:
+            zip_ref.extractall(path=install_path)
+        os.remove(downloaded_file)
+
+        self.update_output("WHIVE CORE WALLET INSTALLED SUCCESSFULLY.\nYou can now:\n - RUN FULL WHIVE NODE (STEP 2)\n - RUN WHIVE POOL MINER (STEP 3)")
+        self.run_whive_button.config(state='normal')
+        self.run_cpuminer_button.config(state='normal')
 
     def run_bitcoin(self):
         bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt.exe")
@@ -213,7 +204,6 @@ class InstallPage(tk.Frame):
         self.update_output("Created pruned bitcoin.conf file.")
 
     def run_bitcoin_miner(self):
-        # Display the disclaimer
         disclaimer_text = ("Disclaimer: Running the Bitcoin CPU miner in Melanin Click for an extended period of time on your machine may result "
                            "in increased wear and tear, overheating, and decreased performance of your hardware.")
         agreement = messagebox.askyesno("Disclaimer", disclaimer_text)
@@ -229,22 +219,19 @@ class InstallPage(tk.Frame):
             bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
             machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
 
-        cpuminer_path = os.path.expanduser('~/cpuminer-opt-win-5.0.40/cpuminer-sse2.exe')
+        cpuminer_path = os.path.expanduser('~/whive-core/whive/miner/minerd.exe')
         
         if not os.path.exists(cpuminer_path):
-            self.update_output("Bitcoin miner not found. Downloading and extracting...")
-            download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.40/cpuminer-opt-win-5.0.40.zip"
-            self.download_and_extract_miner(download_url)
+            self.update_output("Whive miner not found. Please ensure Whive Core is installed.")
 
-        cmd = f'{cpuminer_path} -a sha256d -o stratum+tcp://public-pool.io:21496 -u {bitcoin_address}.{machine_name} -p x'
+        cmd = f'{cpuminer_path} -a yespower -o stratum+tcp://206.189.2.17:3333 -u {bitcoin_address}.{machine_name} -t 2'
 
         # Open the miner in a new terminal window
         subprocess.Popen(['start', 'cmd', '/c', cmd], shell=True)
         self.update_output("Opened a new terminal for Bitcoin mining.")
 
     def run_whive_miner(self):
-        # Display the disclaimer
-        disclaimer_text = ("Disclaimer: Running the CPU miner in Melanin Click for an extended period of time on your machine may result "
+        disclaimer_text = ("Disclaimer: Running the Whive CPU miner in Melanin Click for an extended period of time on your machine may result "
                            "in increased wear and tear, overheating, and decreased performance of your hardware.")
         agreement = messagebox.askyesno("Disclaimer", disclaimer_text)
 
@@ -257,33 +244,19 @@ class InstallPage(tk.Frame):
             messagebox.showwarning("Warning", "Please provide a valid Whive address.")
             whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
 
-        self.whive_address_label.config(text=f"Whive Address: {whive_address}")
-        cpuminer_path = os.path.expanduser('~/cpuminer-opt-win-5.0.40/cpuminer-sse2.exe')
+        minerd_path = os.path.expanduser('~/whive-core/whive/miner/minerd.exe')
         
-        if not os.path.exists(cpuminer_path):
-            self.update_output("Whive miner not found. Downloading and extracting...")
-            download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.40/cpuminer-opt-win-5.0.40.zip"
-            self.download_and_extract_miner(download_url)
+        if not os.path.exists(minerd_path):
+            self.update_output("Whive miner not found. Please ensure Whive Core is installed.")
 
-        cmd = f'{cpuminer_path} -a yespower -o stratum+tcp://206.189.2.17:3333 -u {whive_address}.w1 -t 2'
+        cmd = f'{minerd_path} -a yespower -o stratum+tcp://206.189.2.17:3333 -u {whive_address}.w1 -t 2'
 
         # Open the miner in a new terminal window
         subprocess.Popen(['start', 'cmd', '/c', cmd], shell=True)
         self.update_output("Opened a new terminal for Whive mining.")
 
-    def download_and_extract_miner(self, url):
-        miner_path = os.path.expanduser('~/cpuminer-opt-win-5.0.40')
-        os.makedirs(miner_path, exist_ok=True)
-        zip_path = os.path.join(miner_path, 'cpuminer-opt-win-5.0.40.zip')
-
-        self.update_output("Downloading and extracting miner...")
-        urllib.request.urlretrieve(url, zip_path)
-        with zipfile.ZipFile(zip_path, "r") as zip_ref:
-            zip_ref.extractall(path=miner_path)
-        os.remove(zip_path)
-
     def run_software(self, software_path, *args):
-        self.update_output(f"Running software from {software_path}")
+        self.update_output(f"Running {software_path}...")
         subprocess.Popen([software_path, *args])
 
     def display_help(self):
@@ -294,6 +267,7 @@ class InstallPage(tk.Frame):
         self.output.insert('end', message + "\n")
         self.output.config(state='disabled')
         self.output.see('end')
+
 
 app = Application()
 app.mainloop()
