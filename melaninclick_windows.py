@@ -179,6 +179,14 @@ class InstallPage(tk.Frame):
         else:
             self.update_output("Bitcoin software not found. Please install first.")
 
+    def run_whive(self):
+        """Run Whive Core on Windows."""
+        whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt.exe")
+        if os.path.exists(whive_path):
+            self.run_software(whive_path)
+        else:
+            self.update_output("Whive software not found. Please install first.")
+
     def run_pruned_node(self):
         pruned_data_dir = os.path.join(os.path.expanduser('~'), "pruned-bitcoin")
         bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt.exe")
