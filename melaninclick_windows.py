@@ -98,7 +98,7 @@ class InstallPage(tk.Frame):
         self.install_bitcoin_button.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
         # Run Full Bitcoin Core
-        self.run_bitcoin_button = tk.Button(frame, text="STEP 2: Run Full Bitcoin Node", state='disabled', command=self.run_bitcoin)
+        self.run_mainnet_button = tk.Button(frame, text="STEP 2: Run Bitcoin Wallet & Full Node", state='disabled', command=self.run_mainnet)
         self.run_bitcoin_button.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
         # Run Bitcoin Miner
@@ -119,7 +119,7 @@ class InstallPage(tk.Frame):
         self.install_whive_button.grid(row=7, column=0, padx=10, pady=5, sticky="w")
 
         # Run Full Whive Node
-        self.run_whive_button = tk.Button(frame, text="STEP 2: Run Full Whive Node", state='disabled', command=self.run_whive)
+        self.run_whive_button = tk.Button(frame, text="STEP 2: Run Whive Wallet & Full Node", state='disabled', command=self.run_whive)
         self.run_whive_button.grid(row=8, column=0, padx=10, pady=5, sticky="w")
 
         # Run Whive Miner
