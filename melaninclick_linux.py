@@ -5,7 +5,6 @@ import tarfile
 import threading
 import subprocess
 from tkinter import messagebox, simpledialog
-from PIL import Image, ImageTk
 
 class Application(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -76,7 +75,7 @@ class InstallPage(tk.Frame):
         # Section titles
         tk.Label(frame, text="BITCOIN CORE WALLET & MINER", font=("Helvetica", 14, "bold")).grid(row=0, column=0, columnspan=1, pady=10)
 
-        self.install_bitcoin_button = tk.Button(frame, text="STEP 1: Install Bitcoin Core Wallet", command=lambda: threading.Thread(target=self.install_bitcoin).start())
+        self.install_bitcoin_button = tk.Button(frame, text="STEP 1: Install Bitcoin Core Wallet", command=lambda: threading.Thread(target=self.check_storage_and_install_bitcoin).start())
         self.install_bitcoin_button.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
         self.run_mainnet_button = tk.Button(frame, text="STEP 2: Run Bitcoin Wallet & Full Node", state='disabled', command=self.run_mainnet)
@@ -93,7 +92,7 @@ class InstallPage(tk.Frame):
 
         tk.Label(frame, text="WHIVE CORE WALLET & MINER", font=("Helvetica", 14, "bold")).grid(row=6, column=0, columnspan=1, pady=10)
 
-        self.install_whive_button = tk.Button(frame, text="STEP 1: Install Whive Core Wallet", command=lambda: threading.Thread(target=self.install_whive).start())
+        self.install_whive_button = tk.Button(frame, text="STEP 1: Install Whive Core Wallet", command=lambda: threading.Thread(target=self.check_storage_and_install_whive).start())
         self.install_whive_button.grid(row=7, column=0, padx=10, pady=5, sticky="w")
 
         self.run_whive_button = tk.Button(frame, text="STEP 2: Run Whive Wallet & Full Node", state='disabled', command=self.run_whive)
@@ -111,7 +110,16 @@ class InstallPage(tk.Frame):
         self.quit_button = tk.Button(frame, text="Quit", command=self.controller.quit)
         self.quit_button.grid(row=12, column=0, padx=10, pady=5, sticky="w")
 
-    def install_bitcoin(self):
+    def check_storage_and_install_bitcoin(self):
+        bitcoin_install_path = os.path.expanduser('~/bitcoin-core')
+
+        if os.path.exists(bitcoin_install_path):
+            update_choice = messagebox.askyesno("Update Bitcoin Core", "Bitcoin Core is already installed. Do you want to update it?")
+            if not update_choice:
+                self.run_mainnet_button.config(state='normal')
+                self.run_miner_button.config(state='normal')
+                return
+
         self.update_output("Installing Bitcoin Core... This process may take 1-2 minutes, please be patient.")
         install_path = os.path.join(os.path.expanduser('~'), "bitcoin-core")
         downloaded_file = os.path.join(install_path, "bitcoin.tar.gz")
@@ -129,7 +137,16 @@ class InstallPage(tk.Frame):
         self.run_mainnet_button.config(state='normal')
         self.run_miner_button.config(state='normal')
 
-    def install_whive(self):
+    def check_storage_and_install_whive(self):
+        whive_install_path = os.path.expanduser('~/whive-core')
+
+        if os.path.exists(whive_install_path):
+            update_choice = messagebox.askyesno("Update Whive Core", "Whive Core is already installed. Do you want to update it?")
+            if not update_choice:
+                self.run_whive_button.config(state='normal')
+                self.run_whive_miner_button.config(state='normal')
+                return
+
         self.update_output("Installing Whive Core... This process may take 1-2 minutes, please be patient.")
         install_path = os.path.join(os.path.expanduser('~'), "whive-core")
         downloaded_file = os.path.join(install_path, "whive.tar.gz")
@@ -161,6 +178,10 @@ class InstallPage(tk.Frame):
         bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
         machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
 
+        if not bitcoin_address or not machine_name:
+            self.update_output("Mining process canceled: Bitcoin address or machine name not provided.")
+            return
+
         minerd_path = os.path.expanduser('~/cpuminer-opt-linux/cpuminer')
         if not os.path.exists(minerd_path):
             self.update_output("Bitcoin miner not found. Downloading and extracting...")
@@ -173,6 +194,10 @@ class InstallPage(tk.Frame):
 
     def run_whive_miner(self):
         whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
+
+        if not whive_address:
+            self.update_output("Mining process canceled: Whive address not provided.")
+            return
 
         minerd_path = os.path.expanduser('~/cpuminer-opt-linux/cpuminer')
         if not os.path.exists(minerd_path):
