@@ -8,12 +8,9 @@ from tkinter import simpledialog, messagebox
 import requests
 import psutil
 
-
 class Application(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-
-        # Set the window title
         self.title("Melanin Click")
 
         self.container = tk.Frame(self)
@@ -33,17 +30,14 @@ class Application(tk.Tk):
         frame = self.frames[page]
         frame.tkraise()
 
-
 class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-
         label = tk.Label(self, text="Welcome to the Installation Wizard!")
         label.pack(pady=10, padx=10, anchor='center')
 
         button = tk.Button(self, text="Next", command=lambda: controller.show_frame(TermsPage))
         button.pack(anchor='center')
-
 
 class TermsPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -79,7 +73,6 @@ class TermsPage(tk.Frame):
         self.text.insert('end', html)
         self.text.config(state='disabled')
 
-
 class InstallPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -94,12 +87,12 @@ class InstallPage(tk.Frame):
         tk.Label(frame, text="BITCOIN CORE WALLET & MINER", font=("Helvetica", 14, "bold")).grid(row=0, column=0, pady=10)
 
         # Bitcoin Core Installation
-        self.install_bitcoin_button = tk.Button(frame, text="STEP 1: Install Bitcoin Core Wallet", command=self.install_bitcoin)
+        self.install_bitcoin_button = tk.Button(frame, text="STEP 1: Install Bitcoin Core Wallet", command=self.check_bitcoin_installation)
         self.install_bitcoin_button.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
         # Run Full Bitcoin Core
-        self.run_mainnet_button = tk.Button(frame, text="STEP 2: Run Bitcoin Wallet & Full Node", state='disabled', command=self.run_mainnet)
-        self.run_bitcoin_button.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.run_mainnet_button = tk.Button(frame, text="STEP 2: Run Bitcoin Wallet & Full Node", state='disabled', command=self.run_bitcoin)
+        self.run_mainnet_button.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
         # Run Bitcoin Miner
         self.connect_public_pool_button = tk.Button(frame, text="STEP 3: Run Bitcoin Pool Miner (SV1)", state='disabled', command=self.run_bitcoin_miner)
@@ -115,7 +108,7 @@ class InstallPage(tk.Frame):
         tk.Label(frame, text="WHIVE CORE WALLET & MINER", font=("Helvetica", 14, "bold")).grid(row=6, column=0, pady=10)
 
         # Whive Core Installation
-        self.install_whive_button = tk.Button(frame, text="STEP 1: Install Whive Core Wallet", command=self.install_whive)
+        self.install_whive_button = tk.Button(frame, text="STEP 1: Install Whive Core Wallet", command=self.check_whive_installation)
         self.install_whive_button.grid(row=7, column=0, padx=10, pady=5, sticky="w")
 
         # Run Full Whive Node
@@ -136,6 +129,27 @@ class InstallPage(tk.Frame):
         self.quit_button = tk.Button(frame, text="Quit", command=controller.quit)
         self.quit_button.grid(row=12, column=0, padx=10, pady=5, sticky="w")
 
+    def check_bitcoin_installation(self):
+        install_path = os.path.join(os.path.expanduser('~'), "bitcoin-core")
+        if os.path.exists(install_path):
+            update_choice = messagebox.askyesno("Bitcoin Core Found", "Bitcoin Core is already installed. Do you want to update it?")
+            if not update_choice:
+                self.run_mainnet_button.config(state='normal')
+                self.connect_public_pool_button.config(state='normal')
+                self.run_pruned_node_button.config(state='normal')
+                return
+        self.install_bitcoin()
+
+    def check_whive_installation(self):
+        install_path = os.path.join(os.path.expanduser('~'), "whive-core")
+        if os.path.exists(install_path):
+            update_choice = messagebox.askyesno("Whive Core Found", "Whive Core is already installed. Do you want to update it?")
+            if not update_choice:
+                self.run_whive_button.config(state='normal')
+                self.run_cpuminer_button.config(state='normal')
+                return
+        self.install_whive()
+
     def install_bitcoin(self):
         self.update_output("Installing Bitcoin Core... This process may take 1-2 minutes, please be patient.")
         install_path = os.path.join(os.path.expanduser('~'), "bitcoin-core")
@@ -151,8 +165,9 @@ class InstallPage(tk.Frame):
         os.remove(downloaded_file)
 
         self.update_output("BITCOIN CORE WALLET INSTALLED SUCCESSFULLY.\nYou can now:\n - RUN FULL BITCOIN NODE (STEP 2)\n - RUN BITCOIN POOL MINER (STEP 3)")
-        self.run_bitcoin_button.config(state='normal')
+        self.run_mainnet_button.config(state='normal')
         self.connect_public_pool_button.config(state='normal')
+        self.run_pruned_node_button.config(state='normal')
 
     def install_whive(self):
         self.update_output("Installing Whive Core... This process may take 1-2 minutes, please be patient.")
@@ -180,7 +195,6 @@ class InstallPage(tk.Frame):
             self.update_output("Bitcoin software not found. Please install first.")
 
     def run_whive(self):
-        """Run Whive Core on Windows."""
         whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt.exe")
         if os.path.exists(whive_path):
             self.run_software(whive_path)
@@ -219,13 +233,12 @@ class InstallPage(tk.Frame):
         if not agreement:
             return
 
-        bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
-        machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
+        bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:", parent=self)
+        machine_name = simpledialog.askstring("Input", "Please enter your machine name:", parent=self)
 
-        while not bitcoin_address or not machine_name:
-            messagebox.showwarning("Warning", "Please provide valid Bitcoin address and machine name.")
-            bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
-            machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
+        if not bitcoin_address or not machine_name:
+            self.update_output("Mining canceled: No Bitcoin address or machine name provided.")
+            return
 
         cpuminer_path = os.path.expanduser('~/whive-core/whive/miner/minerd.exe')
         
@@ -246,11 +259,11 @@ class InstallPage(tk.Frame):
         if not agreement:
             return
 
-        whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
+        whive_address = simpledialog.askstring("Input", "Please enter your Whive address:", parent=self)
 
-        while not whive_address:
-            messagebox.showwarning("Warning", "Please provide a valid Whive address.")
-            whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
+        if not whive_address:
+            self.update_output("Mining canceled: No Whive address provided.")
+            return
 
         minerd_path = os.path.expanduser('~/whive-core/whive/miner/minerd.exe')
         
@@ -275,7 +288,6 @@ class InstallPage(tk.Frame):
         self.output.insert('end', message + "\n")
         self.output.config(state='disabled')
         self.output.see('end')
-
 
 app = Application()
 app.mainloop()
