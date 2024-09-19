@@ -87,7 +87,7 @@ class InstallPage(tk.Frame):
         self.install_bitcoin_button = tk.Button(frame, text="STEP 1: Install Bitcoin Core Wallet", command=self.check_storage_and_install_bitcoin)
         self.install_bitcoin_button.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
-        self.run_mainnet_button = tk.Button(frame, text="STEP 2: Run Full Bitcoin Node", state='disabled', command=self.run_mainnet)
+        self.run_mainnet_button = tk.Button(frame, text="STEP 2: Run Bitcoin Wallet & Full Node", state='disabled', command=self.run_mainnet)
         self.run_mainnet_button.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
         self.public_pool_button = tk.Button(frame, text="STEP 3: Run Bitcoin Pool Miner (SV1)", state='disabled', command=self.run_bitcoin_miner)
@@ -104,7 +104,7 @@ class InstallPage(tk.Frame):
         self.install_whive_button = tk.Button(frame, text="STEP 1: Install Whive Core Wallet", command=self.install_whive)
         self.install_whive_button.grid(row=7, column=0, padx=10, pady=5, sticky="w")
 
-        self.run_whive_button = tk.Button(frame, text="STEP 2: Run Full Whive Node", state='disabled', command=self.run_whive)
+        self.run_whive_button = tk.Button(frame, text="STEP 2: Run Whive Wallet & Full Node", state='disabled', command=self.run_whive)
         self.run_whive_button.grid(row=8, column=0, padx=10, pady=5, sticky="w")
 
         self.run_cpuminer_button = tk.Button(frame, text="STEP 3: Run Whive Pool Miner (SV1)", state='disabled', command=self.run_whive_miner)

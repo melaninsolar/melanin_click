@@ -1,0 +1,61 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        architecture: [x86_64, arm64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install PyInstaller
+      run: pip install pyinstaller
+
+    - name: Build Binary
+      run: |
+        if [ "${{ matrix.os }}" == "macos-latest" ]; then
+          if [ "${{ matrix.architecture }}" == "x86_64" ]; then
+            pyinstaller --onefile --windowed --name melaninclick_macos_x86_64 --icon=assets/icons/myicon.icns melaninclick_macos.py;
+            hdiutil create dist/melaninclick-x86_64.dmg -volname "MelaninClick" -srcfolder dist/melaninclick_macos_x86_64;
+          else
+            pyinstaller --onefile --windowed --name melaninclick_macos_arm64 --icon=assets/icons/myicon.icns melaninclick_macos.py;
+            hdiutil create dist/melaninclick-arm64.dmg -volname "MelaninClick" -srcfolder dist/melaninclick_macos_arm64;
+          fi
+        elif [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage;
+          chmod +x appimagetool-x86_64.AppImage;
+          pyinstaller --onefile --windowed --name melaninclick_linux --icon=assets/icons/myicon.png melaninclick_linux.py;
+          ./appimagetool-x86_64.AppImage dist/melaninclick_linux --no-appstream;
+        else
+          pyinstaller --onefile --windowed --name melaninclick_windows --icon=assets/icons/myicon.ico melaninclick_windows.py --log-level=DEBUG;
+        fi
+        ls dist
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-artifacts
+        path: dist/*
+
+    - name: Create Release and Upload
+      uses: ncipollo/release-action@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ github.ref }}
+        artifacts: dist/*
+        allowUpdates: true
