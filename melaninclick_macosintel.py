@@ -101,7 +101,7 @@ class InstallPage(tk.Frame):
 
         tk.Label(frame, text="WHIVE CORE WALLET & MINER", font=("Helvetica", 14, "bold")).grid(row=6, column=0, pady=10)
 
-        self.install_whive_button = tk.Button(frame, text="STEP 1: Install Whive Core Wallet", command=self.install_whive)
+        self.install_whive_button = tk.Button(frame, text="STEP 1: Install Whive Core Wallet", command=self.check_storage_and_install_whive)
         self.install_whive_button.grid(row=7, column=0, padx=10, pady=5, sticky="w")
 
         self.run_whive_button = tk.Button(frame, text="STEP 2: Run Whive Wallet & Full Node", state='disabled', command=self.run_whive)
@@ -120,6 +120,16 @@ class InstallPage(tk.Frame):
         self.quit_button.grid(row=12, column=0, padx=10, pady=5, sticky="w")
 
     def check_storage_and_install_bitcoin(self):
+        bitcoin_install_path = os.path.expanduser('~/bitcoin-core')
+        
+        if os.path.exists(bitcoin_install_path):
+            update_choice = messagebox.askyesno("Update Bitcoin Core", "Bitcoin Core is already installed. Do you want to update it?")
+            if not update_choice:
+                self.run_mainnet_button.config(state='normal')
+                self.public_pool_button.config(state='normal')
+                self.run_pruned_node_button.config(state='normal')
+                return
+        
         self.update_output("Checking storage space for Bitcoin installation...")
         s = os.statvfs('/')
         free_space = s.f_frsize * s.f_bavail / (10**9)  # free space in GB
@@ -132,6 +142,32 @@ class InstallPage(tk.Frame):
             self.update_output("Insufficient storage space for Bitcoin. Please free up some space and try again.")
             return
 
+        # Disable the buttons during installation
+        self.install_bitcoin_button.config(state='disabled')
+
+    def check_storage_and_install_whive(self):
+        whive_install_path = os.path.expanduser('~/whive-core')
+
+        # Check if Whive is already installed
+        if os.path.exists(whive_install_path):
+            update_choice = messagebox.askyesno("Update Whive Core", "Whive Core is already installed. Do you want to update it?")
+            if not update_choice:
+                # Enable run buttons without reinstalling
+                self.run_whive_button.config(state='normal')
+                self.run_cpuminer_button.config(state='normal')
+                return
+
+        # Check available storage
+        self.update_output("Checking storage space for Whive installation...")
+        s = os.statvfs('/')
+        free_space = s.f_frsize * s.f_bavail / (1024**3)  # Convert bytes to GB
+
+        # Adjust storage threshold as needed (e.g., 10 GB)
+        if free_space > 10:  
+            threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive_releases/releases/download/22.2.3/whive-ventura-22.2.3-osx64.tar.gz")).start()
+        else:
+            self.update_output(f"Insufficient storage space for Whive installation. Available: {free_space:.2f} GB")
+            return
         # Disable the buttons during installation
         self.install_bitcoin_button.config(state='disabled')
 
@@ -228,13 +264,12 @@ class InstallPage(tk.Frame):
         if not agreement:
             return
 
-        bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
-        machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
+        bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:", parent=self)
+        machine_name = simpledialog.askstring("Input", "Please enter your machine name:", parent=self)
 
-        while not bitcoin_address or not machine_name:
-            messagebox.showwarning("Warning", "Please provide valid Bitcoin address and machine name.")
-            bitcoin_address = simpledialog.askstring("Input", "Please enter your Bitcoin address:")
-            machine_name = simpledialog.askstring("Input", "Please enter your machine name:")
+        if not bitcoin_address or not machine_name:
+            self.update_output("Mining cancelled: No Bitcoin address or machine name provided.")
+            return
 
         self.update_output(f"Bitcoin Address: {bitcoin_address}")
         self.update_output(f"Machine Name: {machine_name}")
@@ -258,11 +293,11 @@ class InstallPage(tk.Frame):
         if not agreement:
             return
 
-        whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
+        whive_address = simpledialog.askstring("Input", "Please enter your Whive address:", parent=self)
 
-        while not whive_address:
-            messagebox.showwarning("Warning", "Please provide a valid Whive address.")
-            whive_address = simpledialog.askstring("Input", "Please enter your Whive address:")
+        if not whive_address:
+            self.update_output("Mining cancelled: No Whive address provided.")
+            return
 
         self.update_output(f"Whive Address: {whive_address}")
 
@@ -277,59 +312,20 @@ class InstallPage(tk.Frame):
         osascript_cmd = f'osascript -e \'tell application "Terminal" to do script "{cmd}"\''
         subprocess.Popen(osascript_cmd, shell=True)
 
-    def install_whive(self):
-        self.update_output("Installing Whive Core... This will take 1-2 minutes.")
-        threading.Thread(target=self.install, args=('whive', "https://github.com/whiveio/whive_releases/releases/download/22.2.3/whive-ventura-22.2.3-osx64.tar.gz")).start()
-
     def run_whive(self):
-        # Attempt to run whive-qt from tar.gz extraction
-        whive_path_tar = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt")
-        
-        if os.path.exists(whive_path_tar):
-            try:
-                self.update_output("Attempting to run Whive Core from the tar.gz installation...")
-                self.run_software(whive_path_tar)
-            except Exception as e:
-                self.update_output(f"Failed to run Whive Core from tar.gz: {e}")
-                self.update_output("Falling back to .dmg installation...")
-                self.install_whive_dmg()
-        else:
-            self.update_output("Whive Core executable not found in tar.gz. Installing from .dmg...")
-            self.install_whive_dmg()
+        whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt")
 
-    def install_whive_dmg(self):
-        self.update_output("Downloading Whive Core GUI... Please wait.")
-        dmg_url = "https://github.com/whiveio/whive_releases/releases/download/22.2.3/whive-22.2.3-osx-unsigned.dmg"
-        dmg_file = os.path.expanduser("~/Downloads/whive-22.2.3-osx-unsigned.dmg")
+        if not os.path.exists(whive_path):
+            update_choice = messagebox.askyesno("Whive Core Missing", "Whive Core GUI not found. Do you want to install the dmg version?")
+            if update_choice:
+                dmg_path = os.path.expanduser("~/Downloads/whive-22.2.3-osx-unsigned.dmg")
+                dmg_url = "https://github.com/whiveio/whive_releases/releases/download/22.2.3/whive-22.2.3-osx-unsigned.dmg"
+                urllib.request.urlretrieve(dmg_url, dmg_path)
+                subprocess.Popen(["open", dmg_path])
+            return
 
-        try:
-            urllib.request.urlretrieve(dmg_url, dmg_file)
-
-            self.update_output("Mounting Whive Core GUI .dmg...")
-            mount_cmd = f"hdiutil attach {dmg_file}"
-            subprocess.run(mount_cmd, shell=True)
-
-            self.update_output("Copying Whive Core GUI to /Applications...")
-            copy_cmd = "cp -R /Volumes/Whive\\ Core/Whive-Qt.app /Applications/"
-            subprocess.run(copy_cmd, shell=True)
-
-            self.update_output("Unmounting the .dmg...")
-            unmount_cmd = "hdiutil detach /Volumes/Whive\\ Core"
-            subprocess.run(unmount_cmd, shell=True)
-
-            self.update_output("Whive Core GUI installed successfully.")
-            self.run_whive_dmg()
-
-        except Exception as e:
-            self.update_output(f"Error during Whive Core GUI installation: {e}")
-
-    def run_whive_dmg(self):
-        whive_path_dmg = os.path.join("/Applications", "Whive-Qt.app", "Contents", "MacOS", "Whive-Qt")
-        if os.path.exists(whive_path_dmg):
-            self.update_output("Starting Whive Core from the .dmg installation...")
-            self.run_software(whive_path_dmg)
-        else:
-            self.update_output("Failed to find Whive Qt from .dmg installation.")
+        self.update_output("Starting Whive Core...")
+        self.run_software(whive_path)
 
     def run_software(self, software_path, *args):
         self.update_output(f"Running software from {software_path}...")
@@ -344,6 +340,9 @@ class InstallPage(tk.Frame):
         self.output.config(state='disabled')
         self.output.see('end')
 
+    def schedule_update_output(self, message):
+        self.after(0, self.update_output, message)
 
 app = Application()
 app.mainloop()
+
