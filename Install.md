@@ -1,6 +1,6 @@
 
 
-# **Melaninclick Script Setup Guide**
+# **Melanin Click Developer Script Setup Guide**
 
 ## **Prerequisites**
 
