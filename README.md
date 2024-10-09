@@ -1,7 +1,7 @@
 
-# Melanin Click: Your All-In-One Node & Miner Installer
+# Melanin Click: Your All-In-One Wallet, Node & Miner Installer
 
-Welcome to **Melanin Click**, a tool designed to simplify the setup process for running Whive, Bitcoin, and Lightning nodes and miners across multiple platforms. This guide will help you install and run Melanin Click on macOS, Linux, or Windows.
+Welcome to **Melanin Click (Developer Build)**, a tool designed to simplify the setup process for running Whive, Bitcoin, and Lightning nodes and miners across multiple platforms. This guide will help you install and run Melanin Click on macOS, Linux, or Windows.
 
 ## Key Features
 
