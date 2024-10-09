@@ -4,7 +4,7 @@
 
 ### Disclaimer
 
-By using the Melanin Click Software ("Software"), you are agreeing to the following Terms of Use. The Software is provided "as is," without warranty of any kind, either expressed or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, or non-infringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability arising from, out of, or in connection with the Software or the use or other dealings in the Software.
+By using the Melanin Click (Developer Build) "Software", you are agreeing to the following Terms of Use. The Software is provided "as is," without warranty of any kind, either expressed or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, or non-infringement. In no event shall the authors or copyright holders be liable for any claim, damages, or other liability arising from, out of, or in connection with the Software or the use or other dealings in the Software.
 
 ### General Terms
 
