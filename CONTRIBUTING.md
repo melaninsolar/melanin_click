@@ -1,4 +1,4 @@
-# Contributing to Melanin Click
+# Contributing to Melanin Click (Developer Build)
 
 ## Code of Conduct
 
