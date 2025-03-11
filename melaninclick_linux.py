@@ -179,6 +179,9 @@ class InstallPage(ttk.Frame):
         self.progress.grid(row=0, column=0, sticky="ew", pady=2)
         self._create_control_buttons(control_frame)
 
+        # Load saved config
+        self.load_config()
+
     def _create_bitcoin_section(self, parent):
         parent.columnconfigure(0, weight=1)
         ttk.Button(parent, text="Install Bitcoin Core", command=self.check_storage_and_install_bitcoin).grid(row=0, column=0, pady=1, sticky="ew")
@@ -187,7 +190,24 @@ class InstallPage(ttk.Frame):
         self.run_pruned_node_button = ttk.Button(parent, text="Run Pruned Node", state='disabled', command=self.run_pruned_node)
         self.run_pruned_node_button.grid(row=2, column=0, pady=1, sticky="ew")
         self.run_miner_button = ttk.Button(parent, text="Run Pool Miner", state='disabled', command=self.run_bitcoin_miner)
-        self.run_miner_button.grid(row=3, column=0, pady=1, sticky="ew")
+        self.run_miner_button.grid(row=5, column=0, pady=1, sticky="ew")
+
+        # Mining Device Selection
+        ttk.Label(parent, text="Mining Device:").grid(row=3, column=0, pady=1, sticky="w")
+        self.miner_type = tk.StringVar(value="CPU Mining")
+        ttk.OptionMenu(parent, self.miner_type, "CPU Mining", "CPU Mining", "StickMiner").grid(row=4, column=0, pady=1, sticky="ew")
+
+        # Bitcoin Mining Pool Selection
+        ttk.Label(parent, text="Bitcoin Mining Pool:").grid(row=6, column=0, pady=1, sticky="w")
+        self.bitcoin_pool = tk.StringVar(value="Public Pool")
+        self.bitcoin_pool_options = {
+            "CKPool": "stratum+tcp://solo.ckpool.org:3333",
+            "Public Pool": "stratum+tcp://public-pool.io:21496",
+            "Ocean Pool": "stratum+tcp://stratum.ocean.xyz:3000",
+            "Ocean Pool (Alt)": "stratum+tcp://mine.ocean.xyz:3334",
+            "Kano Pool": "stratum+tcp://stratum.kano.is:3333"  # Added for StickMiner
+        }
+        ttk.OptionMenu(parent, self.bitcoin_pool, "Public Pool", *self.bitcoin_pool_options.keys()).grid(row=7, column=0, pady=1, sticky="ew")
 
     def _create_whive_section(self, parent):
         parent.columnconfigure(0, weight=1)
@@ -203,6 +223,25 @@ class InstallPage(ttk.Frame):
         self.cancel_button.grid(row=1, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(parent, text="Help", command=self.display_help).grid(row=1, column=1, padx=2, pady=2, sticky="ew")
         ttk.Button(parent, text="Exit", command=self.controller.exit_app, style="Accent.TButton").grid(row=1, column=2, padx=2, pady=2, sticky="ew")
+
+    def load_config(self):
+        try:
+            with open("config.json", "r") as f:
+                config = json.load(f)
+                self.miner_type.set(config.get("miner_type", "CPU Mining"))
+                self.bitcoin_pool.set(config.get("bitcoin_pool", "Public Pool"))
+            logging.info("Configuration loaded.")
+        except FileNotFoundError:
+            pass
+
+    def save_config(self):
+        config = {
+            "miner_type": self.miner_type.get(),
+            "bitcoin_pool": self.bitcoin_pool.get()
+        }
+        with open("config.json", "w") as f:
+            json.dump(config, f)
+        logging.info("Configuration saved.")
 
     def check_storage_and_install_bitcoin(self):
         self.cancel_flag = False
@@ -331,6 +370,29 @@ class InstallPage(ttk.Frame):
             self.create_bitcoin_conf(conf_path, prune=True)
         self.run_software(bitcoin_path, f"--datadir={pruned_conf_dir}", f"-conf={conf_path}")
 
+    def build_cgminer(self):
+        self.update_output("Building CGMiner for StickMiner...")
+        commands = [
+            "sudo apt-get update",
+            "sudo apt-get upgrade -y",
+            "sudo apt-get install -y build-essential autoconf automake libtool pkg-config libcurl4-openssl-dev libudev-dev libusb-1.0-0-dev libncurses5-dev zlib1g-dev git",
+            "cd ~",
+            "git clone https://github.com/kanoi/cgminer.git",
+            "cd ~/cgminer",
+            "CFLAGS=\"-O2 -march=native -fcommon\" ./autogen.sh --enable-gekko --enable-icarus",
+            "make",
+            "sudo apt-get install -y openjdk-8-jre-headless"
+        ]
+        for cmd in commands:
+            try:
+                subprocess.check_call(cmd, shell=True)
+                self.update_output(f"Executed: {cmd}", "success")
+            except subprocess.CalledProcessError as e:
+                self.update_output(f"Error executing {cmd}: {e}", "error")
+                return False
+        self.update_output("CGMiner built successfully!", "success")
+        return True
+
     def run_bitcoin_miner(self):
         if not messagebox.askyesno("Disclaimer", "Mining may cause hardware wear. Proceed?"):
             return
@@ -344,14 +406,31 @@ class InstallPage(ttk.Frame):
             self.update_output("No machine name provided.", "error")
             return
 
-        minerd_path = os.path.expanduser('~/cpuminer-opt-linux/cpuminer')
-        if not os.path.exists(minerd_path):
-            self.update_output("Bitcoin miner not found. Downloading and extracting...")
-            download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.40/cpuminer-opt-linux-5.0.40.tar.gz"
-            self.download_and_extract_miner(download_url)
+        miner_type = self.miner_type.get()
+        pool_url = self.bitcoin_pool_options[self.bitcoin_pool.get()]
+        cgminer_path = os.path.expanduser('~/cgminer/cgminer')
 
-        cmd = f'{minerd_path} -a sha256d -o stratum+tcp://public-pool.io:21496 -u {bitcoin_address}.{machine_name} -p x'
-        self.run_terminal_command(cmd, "Bitcoin")
+        if miner_type == "StickMiner":
+            if not os.path.exists(cgminer_path):
+                if not self.build_cgminer():
+                    self.update_output("Failed to build CGMiner. Please check the output and try again.", "error")
+                    return
+            cmd = f"{cgminer_path} -o {pool_url} -u {bitcoin_address} -p x --suggest-diff 442"
+            try:
+                subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', f"sudo {cmd}; exec bash"])
+                self.update_output(f"Started StickMiner with CGMiner in a new terminal window (using {self.bitcoin_pool.get()} pool)...", "success")
+                logging.info(f"Started StickMiner with command: {cmd}")
+            except subprocess.CalledProcessError as e:
+                self.update_output(f"Error starting StickMiner: {e}. Try running with sudo manually: sudo {cmd}", "error")
+                logging.error(f"Failed to start StickMiner: {e}")
+        else:  # CPU Mining
+            minerd_path = os.path.expanduser('~/cpuminer-opt-linux/cpuminer')
+            if not os.path.exists(minerd_path):
+                self.update_output("CPU miner not found. Downloading and extracting...")
+                download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.40/cpuminer-opt-linux-5.0.40.tar.gz"
+                self.download_and_extract_miner(download_url)
+            cmd = f'{minerd_path} -a sha256d -o {pool_url} -u {bitcoin_address}.{machine_name} -p x'
+            self.run_terminal_command(cmd, "Bitcoin")
 
     def run_whive_miner(self):
         if not messagebox.askyesno("Disclaimer", "Mining may cause hardware wear. Proceed?"):
@@ -417,7 +496,8 @@ class InstallPage(ttk.Frame):
             "- Install: Download and set up Bitcoin or Whive Core.\n"
             "- Run Full Node: Start a full Bitcoin node (requires ~600GB).\n"
             "- Run Pruned Node: Start a pruned Bitcoin node (~10GB).\n"
-            "- Run Miner: Connect to a pool (public-pool.io for Bitcoin, 206.189.2.17:3333 for Whive).\n"
+            "- Run Miner: Connect to a selected pool (CKPool, Public Pool, Ocean Pool, Ocean Pool Alt, Kano Pool).\n"
+            "- Mining Device: Choose between CPU Mining or StickMiner (requires build process).\n"
             "- Bitcoin Address: Use a valid BTC address (e.g., 1..., 3..., bc1...).\n"
             "Contact support at support@melaninclick.com for assistance."
         )
@@ -438,6 +518,10 @@ class InstallPage(ttk.Frame):
     def cancel_install(self):
         self.cancel_flag = True
         self.update_output("Cancelling installation...", "error")
+
+    def destroy(self):
+        self.save_config()
+        super().destroy()
 
 if __name__ == "__main__":
     app = Application()
