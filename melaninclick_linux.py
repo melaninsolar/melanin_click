@@ -381,7 +381,7 @@ class InstallPage(ttk.Frame):
         self.check_node_status("whive")
 
     def check_node_status(self, software):
-        cli_path = os.path.join(os.path.expanduser('~'), f"{software}-core", f"{software}-22.0" if software == "bitcoin" else "whive", "bin", f"{software}-cli")
+        cli_path = os.path.join(os.path.expanduser('~'), f"{software}-core", f"{software}-28.1" if software == "bitcoin" else "whive", "bin", f"{software}-cli")
         try:
             result = subprocess.check_output([cli_path, "getblockchaininfo"], stderr=subprocess.STDOUT).decode()
             self.update_output(f"{software.capitalize()} Node Status:\n{result}", "success")
