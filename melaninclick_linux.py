@@ -20,8 +20,8 @@ class Application(tk.Tk):
         self.title("Melanin Click - Bitcoin & Whive Manager")
         
         # Set default size to 400x500 with minimum size
-        self.minsize(400, 500)
-        self.geometry("400x500")
+        self.minsize(620, 692)
+        self.geometry("620x692")
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
 
         # Main container with scrollbar
@@ -78,7 +78,7 @@ class StartPage(ttk.Frame):
 
         # Create a main frame with a subtle border
         main_frame = ttk.Frame(self, style="Card.TFrame")
-        main_frame.place(relx=0.5, rely=0.1, anchor="n")  # Align to top while keeping horizontal center
+        main_frame.place(relx=0.5, rely=0.1, anchor="n")
 
         # Placeholder for a logo/icon
         logo_label = ttk.Label(main_frame, text="🖱️", font=("Helvetica", 50), background="#3a3a3a", foreground="white")
@@ -189,33 +189,35 @@ class InstallPage(ttk.Frame):
         self.run_mainnet_button.grid(row=1, column=0, pady=1, sticky="ew")
         self.run_pruned_node_button = ttk.Button(parent, text="Run Pruned Node", state='disabled', command=self.run_pruned_node)
         self.run_pruned_node_button.grid(row=2, column=0, pady=1, sticky="ew")
-        self.run_miner_button = ttk.Button(parent, text="Run Pool Miner", state='disabled', command=self.run_bitcoin_miner)
-        self.run_miner_button.grid(row=5, column=0, pady=1, sticky="ew")
+        self.status_bitcoin_button = ttk.Button(parent, text="Check Node Status", state='disabled', command=self.check_bitcoin_status)
+        self.status_bitcoin_button.grid(row=3, column=0, pady=1, sticky="ew")
 
-        # Mining Device Selection
-        ttk.Label(parent, text="Mining Device:").grid(row=3, column=0, pady=1, sticky="w")
+        ttk.Label(parent, text="Mining Device:").grid(row=4, column=0, pady=1, sticky="w")
         self.miner_type = tk.StringVar(value="CPU Mining")
-        ttk.OptionMenu(parent, self.miner_type, "CPU Mining", "CPU Mining", "StickMiner").grid(row=4, column=0, pady=1, sticky="ew")
+        ttk.OptionMenu(parent, self.miner_type, "CPU Mining", "CPU Mining", "StickMiner").grid(row=5, column=0, pady=1, sticky="ew")
 
-        # Bitcoin Mining Pool Selection
         ttk.Label(parent, text="Bitcoin Mining Pool:").grid(row=6, column=0, pady=1, sticky="w")
-        self.bitcoin_pool = tk.StringVar(value="Public Pool")
+        self.bitcoin_pool = tk.StringVar(value="CKPool")
         self.bitcoin_pool_options = {
             "CKPool": "stratum+tcp://solo.ckpool.org:3333",
             "Public Pool": "stratum+tcp://public-pool.io:21496",
             "Ocean Pool": "stratum+tcp://stratum.ocean.xyz:3000",
-            "Ocean Pool (Alt)": "stratum+tcp://mine.ocean.xyz:3334",
-            "Kano Pool": "stratum+tcp://stratum.kano.is:3333"  # Added for StickMiner
+            "Ocean Pool (Alt)": "stratum+tcp://mine.ocean.xyz:3334"
         }
-        ttk.OptionMenu(parent, self.bitcoin_pool, "Public Pool", *self.bitcoin_pool_options.keys()).grid(row=7, column=0, pady=1, sticky="ew")
+        ttk.OptionMenu(parent, self.bitcoin_pool, "CKPool", *self.bitcoin_pool_options.keys()).grid(row=7, column=0, pady=1, sticky="ew")
+
+        self.public_pool_button = ttk.Button(parent, text="Run Pool Miner", state='disabled', command=self.run_bitcoin_miner)
+        self.public_pool_button.grid(row=8, column=0, pady=1, sticky="ew")
 
     def _create_whive_section(self, parent):
         parent.columnconfigure(0, weight=1)
         ttk.Button(parent, text="Install Whive Core", command=self.check_storage_and_install_whive).grid(row=0, column=0, pady=1, sticky="ew")
         self.run_whive_button = ttk.Button(parent, text="Run Full Node", state='disabled', command=self.run_whive)
         self.run_whive_button.grid(row=1, column=0, pady=1, sticky="ew")
-        self.run_whive_miner_button = ttk.Button(parent, text="Run Pool Miner", state='disabled', command=self.run_whive_miner)
-        self.run_whive_miner_button.grid(row=2, column=0, pady=1, sticky="ew")
+        self.status_whive_button = ttk.Button(parent, text="Check Node Status", state='disabled', command=self.check_whive_status)
+        self.status_whive_button.grid(row=2, column=0, pady=1, sticky="ew")
+        self.run_cpuminer_button = ttk.Button(parent, text="Run Pool Miner", state='disabled', command=self.run_whive_miner)
+        self.run_cpuminer_button.grid(row=3, column=0, pady=1, sticky="ew")
 
     def _create_control_buttons(self, parent):
         parent.columnconfigure((0, 1, 2), weight=1)
@@ -226,10 +228,10 @@ class InstallPage(ttk.Frame):
 
     def load_config(self):
         try:
-            with open("config.json", "r") as f:
+            with open(os.path.expanduser("~/melanin_click_config.json"), "r") as f:
                 config = json.load(f)
                 self.miner_type.set(config.get("miner_type", "CPU Mining"))
-                self.bitcoin_pool.set(config.get("bitcoin_pool", "Public Pool"))
+                self.bitcoin_pool.set(config.get("bitcoin_pool", "CKPool"))
             logging.info("Configuration loaded.")
         except FileNotFoundError:
             pass
@@ -239,7 +241,7 @@ class InstallPage(ttk.Frame):
             "miner_type": self.miner_type.get(),
             "bitcoin_pool": self.bitcoin_pool.get()
         }
-        with open("config.json", "w") as f:
+        with open(os.path.expanduser("~/melanin_click_config.json"), "w") as f:
             json.dump(config, f)
         logging.info("Configuration saved.")
 
@@ -292,7 +294,7 @@ class InstallPage(ttk.Frame):
         if free_space > 10:
             threading.Thread(
                 target=self.install,
-                args=('whive', "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz", False)
+                args=('whive', "https://github.com/whiveio/whive_releases/releases/download/22.2.3/whive-22.2.3-x86_64-linux-gnu.tar.gz", False)
             ).start()
         else:
             self.update_output(f"Insufficient space: {free_space:.2f} GB available.", "error")
@@ -340,20 +342,16 @@ class InstallPage(ttk.Frame):
     def enable_bitcoin_buttons(self):
         self.run_mainnet_button.config(state='normal')
         self.run_pruned_node_button.config(state='normal')
-        self.run_miner_button.config(state='normal')
+        self.public_pool_button.config(state='normal')
+        self.status_bitcoin_button.config(state='normal')
 
     def enable_whive_buttons(self):
         self.run_whive_button.config(state='normal')
-        self.run_whive_miner_button.config(state='normal')
-
-    def create_bitcoin_conf(self, conf_path, prune=False):
-        conf_content = "prune=550\ndaemon=1\ntxindex=1\n" if prune else "daemon=1\ntxindex=1\n"
-        with open(conf_path, 'w') as conf_file:
-            conf_file.write(conf_content)
-        self.update_output(f"Created bitcoin.conf at {conf_path}")
+        self.run_cpuminer_button.config(state='normal')
+        self.status_whive_button.config(state='normal')
 
     def run_mainnet(self):
-        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
+        bitcoin_path = os.path.join(os.path.expanduser('~/bitcoin-core/bitcoin-22.0/bin'), "bitcoin-qt")
         mainnet_conf_dir = os.path.join(os.path.expanduser('~'), ".bitcoin/mainnet")
         conf_path = os.path.join(mainnet_conf_dir, "bitcoin.conf")
         if not os.path.exists(conf_path):
@@ -362,36 +360,35 @@ class InstallPage(ttk.Frame):
         self.run_software(bitcoin_path, f"-conf={conf_path}")
 
     def run_pruned_node(self):
-        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
+        bitcoin_path = os.path.join(os.path.expanduser('~/bitcoin-core/bitcoin-22.0/bin'), "bitcoin-qt")
         pruned_conf_dir = os.path.join(os.path.expanduser('~'), ".bitcoin/pruned")
         conf_path = os.path.join(pruned_conf_dir, "bitcoin.conf")
         if not os.path.exists(conf_path):
             os.makedirs(pruned_conf_dir, exist_ok=True)
             self.create_bitcoin_conf(conf_path, prune=True)
-        self.run_software(bitcoin_path, f"--datadir={pruned_conf_dir}", f"-conf={conf_path}")
+        self.run_software(bitcoin_path, f"-datadir={pruned_conf_dir}", f"-conf={conf_path}")
 
-    def build_cgminer(self):
-        self.update_output("Building CGMiner for StickMiner...")
-        commands = [
-            "sudo apt-get update",
-            "sudo apt-get upgrade -y",
-            "sudo apt-get install -y build-essential autoconf automake libtool pkg-config libcurl4-openssl-dev libudev-dev libusb-1.0-0-dev libncurses5-dev zlib1g-dev git",
-            "cd ~",
-            "git clone https://github.com/kanoi/cgminer.git",
-            "cd ~/cgminer",
-            "CFLAGS=\"-O2 -march=native -fcommon\" ./autogen.sh --enable-gekko --enable-icarus",
-            "make",
-            "sudo apt-get install -y openjdk-8-jre-headless"
-        ]
-        for cmd in commands:
-            try:
-                subprocess.check_call(cmd, shell=True)
-                self.update_output(f"Executed: {cmd}", "success")
-            except subprocess.CalledProcessError as e:
-                self.update_output(f"Error executing {cmd}: {e}", "error")
-                return False
-        self.update_output("CGMiner built successfully!", "success")
-        return True
+    def create_bitcoin_conf(self, conf_path, prune=False):
+        conf_content = "prune=550\ndaemon=1\ntxindex=1\n" if prune else "daemon=1\ntxindex=1\n"
+        with open(conf_path, 'w') as conf_file:
+            conf_file.write(conf_content)
+        self.update_output(f"Created bitcoin.conf at {conf_path}")
+
+    def check_bitcoin_status(self):
+        self.check_node_status("bitcoin")
+
+    def check_whive_status(self):
+        self.check_node_status("whive")
+
+    def check_node_status(self, software):
+        cli_path = os.path.join(os.path.expanduser('~'), f"{software}-core", f"{software}-22.0" if software == "bitcoin" else "whive", "bin", f"{software}-cli")
+        try:
+            result = subprocess.check_output([cli_path, "getblockchaininfo"], stderr=subprocess.STDOUT).decode()
+            self.update_output(f"{software.capitalize()} Node Status:\n{result}", "success")
+        except subprocess.CalledProcessError as e:
+            self.update_output(f"Error checking {software} status: {e.output.decode()}", "error")
+        except Exception as e:
+            self.update_output(f"Failed to check {software} status: {e}", "error")
 
     def run_bitcoin_miner(self):
         if not messagebox.askyesno("Disclaimer", "Mining may cause hardware wear. Proceed?"):
@@ -406,31 +403,14 @@ class InstallPage(ttk.Frame):
             self.update_output("No machine name provided.", "error")
             return
 
-        miner_type = self.miner_type.get()
-        pool_url = self.bitcoin_pool_options[self.bitcoin_pool.get()]
-        cgminer_path = os.path.expanduser('~/cgminer/cgminer')
+        minerd_path = os.path.expanduser('~/whive-core/whive/miner/minerd')
+        if not os.path.exists(minerd_path):
+            self.update_output("Bitcoin miner not found at ~/whive-core/whive/miner/minerd.", "error")
+            return
 
-        if miner_type == "StickMiner":
-            if not os.path.exists(cgminer_path):
-                if not self.build_cgminer():
-                    self.update_output("Failed to build CGMiner. Please check the output and try again.", "error")
-                    return
-            cmd = f"{cgminer_path} -o {pool_url} -u {bitcoin_address} -p x --suggest-diff 442"
-            try:
-                subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', f"sudo {cmd}; exec bash"])
-                self.update_output(f"Started StickMiner with CGMiner in a new terminal window (using {self.bitcoin_pool.get()} pool)...", "success")
-                logging.info(f"Started StickMiner with command: {cmd}")
-            except subprocess.CalledProcessError as e:
-                self.update_output(f"Error starting StickMiner: {e}. Try running with sudo manually: sudo {cmd}", "error")
-                logging.error(f"Failed to start StickMiner: {e}")
-        else:  # CPU Mining
-            minerd_path = os.path.expanduser('~/cpuminer-opt-linux/cpuminer')
-            if not os.path.exists(minerd_path):
-                self.update_output("CPU miner not found. Downloading and extracting...")
-                download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.40/cpuminer-opt-linux-5.0.40.tar.gz"
-                self.download_and_extract_miner(download_url)
-            cmd = f'{minerd_path} -a sha256d -o {pool_url} -u {bitcoin_address}.{machine_name} -p x'
-            self.run_terminal_command(cmd, "Bitcoin")
+        pool_url = self.bitcoin_pool_options[self.bitcoin_pool.get()]
+        cmd = f'{minerd_path} -a sha256d -o {pool_url} -u {bitcoin_address}.{machine_name} -p x'
+        self.run_terminal_command(cmd, "Bitcoin")
 
     def run_whive_miner(self):
         if not messagebox.askyesno("Disclaimer", "Mining may cause hardware wear. Proceed?"):
@@ -441,28 +421,19 @@ class InstallPage(ttk.Frame):
             self.update_output("No Whive address provided.", "error")
             return
 
-        minerd_path = os.path.expanduser('~/cpuminer-opt-linux/cpuminer')
+        minerd_path = os.path.expanduser('~/whive-core/whive/miner/minerd')
         if not os.path.exists(minerd_path):
-            self.update_output("Whive miner not found. Downloading and extracting...")
-            download_url = "https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.40/cpuminer-opt-linux-5.0.40.tar.gz"
-            self.download_and_extract_miner(download_url)
+            self.update_output("Whive miner not found.", "error")
+            return
 
         cmd = f'{minerd_path} -a yespower -o stratum+tcp://206.189.2.17:3333 -u {whive_address}.w1 -t 2'
         self.run_terminal_command(cmd, "Whive")
 
-    def download_and_extract_miner(self, url):
-        miner_path = os.path.expanduser('~/cpuminer-opt-linux')
-        os.makedirs(miner_path, exist_ok=True)
-        tar_path = os.path.join(miner_path, 'cpuminer-opt-linux.tar.gz')
-
-        self.update_output("Downloading and extracting miner...")
-        urllib.request.urlretrieve(url, tar_path)
-        with tarfile.open(tar_path, "r:gz") as tar:
-            tar.extractall(path=miner_path)
-        os.remove(tar_path)
-
     def run_whive(self):
-        whive_path = os.path.join(os.path.expanduser('~'), "whive-core", "whive", "bin", "whive-qt")
+        whive_path = os.path.join(os.path.expanduser('~/whive-core/whive/bin'), "whive-qt")
+        if not os.path.exists(whive_path):
+            self.update_output("Whive GUI not found. Please install Whive Core.", "error")
+            return
         self.run_software(whive_path)
 
     def run_software(self, software_path, *args):
@@ -476,8 +447,10 @@ class InstallPage(ttk.Frame):
 
     def run_terminal_command(self, cmd, software):
         try:
-            subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', f"{cmd}; exec bash"])
-            self.update_output(f"Started {software} mining in a new terminal window...", "success")
+            # Use x-terminal-emulator for Linux; fallback to gnome-terminal or xterm if needed
+            terminal_cmd = f'x-terminal-emulator -e "{cmd}"'
+            subprocess.Popen(terminal_cmd, shell=True)
+            self.update_output(f"Started {software} mining on {self.bitcoin_pool.get()}...", "success")
             logging.info(f"Started {software} miner with command: {cmd}")
         except Exception as e:
             self.update_output(f"Failed to start {software} miner: {e}", "error")
@@ -496,8 +469,8 @@ class InstallPage(ttk.Frame):
             "- Install: Download and set up Bitcoin or Whive Core.\n"
             "- Run Full Node: Start a full Bitcoin node (requires ~600GB).\n"
             "- Run Pruned Node: Start a pruned Bitcoin node (~10GB).\n"
-            "- Run Miner: Connect to a selected pool (CKPool, Public Pool, Ocean Pool, Ocean Pool Alt, Kano Pool).\n"
-            "- Mining Device: Choose between CPU Mining or StickMiner (requires build process).\n"
+            "- Run Miner: Connect to a selected pool (CKPool, Public Pool, Ocean Pool, Ocean Pool Alt).\n"
+            "- Check Status: View node sync progress.\n"
             "- Bitcoin Address: Use a valid BTC address (e.g., 1..., 3..., bc1...).\n"
             "Contact support at support@melaninclick.com for assistance."
         )
