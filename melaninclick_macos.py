@@ -264,12 +264,12 @@ class InstallPage(ttk.Frame):
         if free_space > 600:
             threading.Thread(
                 target=self.install,
-                args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-osx64.tar.gz", False)
+                args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-28.1/bitcoin-28.1-x86_64-apple-darwin.tar.gz", False)
             ).start()
         elif free_space > 10:
             threading.Thread(
                 target=self.install,
-                args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-osx64.tar.gz", True)
+                args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-28.1/bitcoin-28.1-x86_64-apple-darwin-unsigned.tar.gz", True)
             ).start()
         else:
             self.update_output(f"Insufficient space: {free_space:.2f} GB available.", "error")
@@ -351,7 +351,7 @@ class InstallPage(ttk.Frame):
         self.status_whive_button.config(state='normal')
 
     def run_mainnet(self):
-        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
+        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-28.1", "bin", "bitcoin-qt")
         mainnet_conf_dir = os.path.join(os.path.expanduser('~'), ".bitcoin/mainnet")
         conf_path = os.path.join(mainnet_conf_dir, "bitcoin.conf")
         if not os.path.exists(conf_path):
@@ -360,7 +360,7 @@ class InstallPage(ttk.Frame):
         self.run_software(bitcoin_path, f"-conf={conf_path}")
 
     def run_pruned_node(self):
-        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-22.0", "bin", "bitcoin-qt")
+        bitcoin_path = os.path.join(os.path.expanduser('~'), "bitcoin-core", "bitcoin-28.1", "bin", "bitcoin-qt")
         pruned_conf_dir = os.path.join(os.path.expanduser('~'), ".bitcoin/pruned")
         conf_path = os.path.join(pruned_conf_dir, "bitcoin.conf")
         if not os.path.exists(conf_path):
@@ -381,7 +381,7 @@ class InstallPage(ttk.Frame):
         self.check_node_status("whive")
 
     def check_node_status(self, software):
-        cli_path = os.path.join(os.path.expanduser('~'), f"{software}-core", f"{software}-22.0" if software == "bitcoin" else "whive", "bin", f"{software}-cli")
+        cli_path = os.path.join(os.path.expanduser('~'), f"{software}-core", f"{software}-28.1" if software == "bitcoin" else "whive", "bin", f"{software}-cli")
         try:
             result = subprocess.check_output([cli_path, "getblockchaininfo"], stderr=subprocess.STDOUT).decode()
             self.update_output(f"{software.capitalize()} Node Status:\n{result}", "success")
