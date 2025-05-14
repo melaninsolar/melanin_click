@@ -264,12 +264,12 @@ class InstallPage(ttk.Frame):
         if free_space > 600:
             threading.Thread(
                 target=self.install,
-                args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-x86_64-linux-gnu.tar.gz", False)
+                args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-28.1/bitcoin-28.1-x86_64-linux-gnu.tar.gz", False)
             ).start()
         elif free_space > 10:
             threading.Thread(
                 target=self.install,
-                args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-22.0/bitcoin-22.0-x86_64-linux-gnu.tar.gz", True)
+                args=('bitcoin', "https://bitcoincore.org/bin/bitcoin-core-28.1/bitcoin-28.1-x86_64-linux-gnu.tar.gz", True)
             ).start()
         else:
             self.update_output(f"Insufficient space: {free_space:.2f} GB available.", "error")
@@ -294,7 +294,7 @@ class InstallPage(ttk.Frame):
         if free_space > 10:
             threading.Thread(
                 target=self.install,
-                args=('whive', "https://github.com/whiveio/whive_releases/releases/download/22.2.3/whive-22.2.3-x86_64-linux-gnu.tar.gz", False)
+                args=('whive', "https://github.com/whiveio/whive/releases/download/22.2.2/whive-22.2.2-x86_64-linux-gnu.tar.gz", False)
             ).start()
         else:
             self.update_output(f"Insufficient space: {free_space:.2f} GB available.", "error")
@@ -351,7 +351,7 @@ class InstallPage(ttk.Frame):
         self.status_whive_button.config(state='normal')
 
     def run_mainnet(self):
-        bitcoin_path = os.path.join(os.path.expanduser('~/bitcoin-core/bitcoin-22.0/bin'), "bitcoin-qt")
+        bitcoin_path = os.path.join(os.path.expanduser('~/bitcoin-core/bitcoin-28.1/bin'), "bitcoin-qt")
         mainnet_conf_dir = os.path.join(os.path.expanduser('~'), ".bitcoin/mainnet")
         conf_path = os.path.join(mainnet_conf_dir, "bitcoin.conf")
         if not os.path.exists(conf_path):
@@ -360,7 +360,7 @@ class InstallPage(ttk.Frame):
         self.run_software(bitcoin_path, f"-conf={conf_path}")
 
     def run_pruned_node(self):
-        bitcoin_path = os.path.join(os.path.expanduser('~/bitcoin-core/bitcoin-22.0/bin'), "bitcoin-qt")
+        bitcoin_path = os.path.join(os.path.expanduser('~/bitcoin-core/bitcoin-28.1/bin'), "bitcoin-qt")
         pruned_conf_dir = os.path.join(os.path.expanduser('~'), ".bitcoin/pruned")
         conf_path = os.path.join(pruned_conf_dir, "bitcoin.conf")
         if not os.path.exists(conf_path):
