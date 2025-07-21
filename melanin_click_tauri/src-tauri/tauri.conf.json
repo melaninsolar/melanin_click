@@ -1,0 +1,116 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Melanin Click",
+  "version": "2.0.0",
+  "identifier": "com.melaninclick.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Melanin Click - Bitcoin & Whive Desktop Client",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "identifier": "com.melaninclick.app",
+    "publisher": "Melanin Click Team",
+    "copyright": "Copyright © 2024 Melanin Click Team",
+    "category": "Utility",
+    "shortDescription": "All-in-one Bitcoin & Whive mining client",
+    "longDescription": "Melanin Click is a professional cryptocurrency mining platform supporting Bitcoin (SHA-256) and Whive (Yespower) mining with one-click node management and pool connectivity.",
+    "resources": [],
+    "deb": {
+      "depends": ["libc6", "libgtk-3-0", "libwebkit2gtk-4.0-37"]
+    },
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null,
+      "hardenedRuntime": true,
+      "minimumSystemVersion": "10.13"
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "allowDowngrades": false,
+      "wix": {
+        "language": "en-US",
+        "template": "main.wxs"
+      },
+      "nsis": {
+        "displayLanguageSelector": false,
+        "installerIcon": "icons/icon.ico",
+        "installMode": "currentUser",
+        "languages": ["English"],
+        "template": "installer.nsi"
+      }
+    }
+  },
+  "plugins": {
+    "shell": {
+      "open": true,
+      "scope": [
+        {
+          "name": "mining-operations",
+          "cmd": "minerd",
+          "args": [
+            "-a", "$ALG",
+            "-o", "$POOL",
+            "-u", "$USER",
+            "-p", "$PASS",
+            "-t", "$THREADS",
+            "-q"
+          ]
+        },
+        {
+          "name": "node-operations",
+          "cmd": "bitcoin*",
+          "args": true
+        },
+        {
+          "name": "whive-operations", 
+          "cmd": "whive*",
+          "args": true
+        }
+      ]
+    },
+    "fs": {
+      "scope": [
+        "$HOME/.bitcoin/**",
+        "$HOME/.whive/**",
+        "$HOME/.melanin_click/**",
+        "$HOME/bitcoin-core/**",
+        "$HOME/whive-core/**"
+      ]
+    }
+  }
+}
