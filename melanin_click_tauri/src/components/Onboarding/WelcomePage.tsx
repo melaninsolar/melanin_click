@@ -49,7 +49,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onContinue }) => {
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">Whive Protocol</h3>
             <p className="text-gray-400 text-sm">
-              CPU-optimized mining with YescryptR32 algorithm. Efficient, sustainable cryptocurrency mining for everyone.
+              CPU-optimized mining with Yespower algorithm. Efficient, sustainable cryptocurrency mining for everyone.
             </p>
           </div>
 

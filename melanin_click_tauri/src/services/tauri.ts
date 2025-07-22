@@ -72,17 +72,13 @@ export class TauriService {
 
   // Enhanced Mining Operations with Address Validation
   static async startEnhancedBitcoinMining(
-    bitcoinAddress: string, 
-    workerName: string, 
-    poolName: string, 
-    threads?: number
+    bitcoinAddress: string,
+    workerName: string,
+    poolName: string,
+    threads?: number,
+    miningMode?: 'cpu' | 'stick'
   ): Promise<string> {
-    return await invoke('start_enhanced_bitcoin_mining', { 
-      bitcoin_address: bitcoinAddress, 
-      worker_name: workerName, 
-      pool_name: poolName,
-      threads 
-    });
+    return await invoke('start_enhanced_bitcoin_mining', { bitcoinAddress, workerName, poolName, threads, miningMode });
   }
 
   static async startEnhancedWhiveMining(

@@ -152,7 +152,7 @@ const WhivePage: React.FC = () => {
         </div>
         <h1 className="text-3xl font-bold text-white mb-2">Whive Protocol</h1>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          CPU-optimized cryptocurrency mining with YescryptR32 algorithm
+          CPU-optimized cryptocurrency mining with Yespower algorithm
         </p>
       </div>
 
@@ -181,7 +181,7 @@ const WhivePage: React.FC = () => {
           </div>
           <div>
             <h3 className="font-semibold text-white">Mining Operations</h3>
-            <p className="text-sm text-gray-400">YescryptR32 CPU Mining</p>
+            <p className="text-sm text-gray-400">Yespower CPU Mining</p>
           </div>
         </div>
 
@@ -341,7 +341,7 @@ const WhivePage: React.FC = () => {
               <Zap className="w-16 h-16 text-gray-600 mx-auto mb-4" />
               <h4 className="font-semibold text-white mb-2">Mining Stopped</h4>
               <p className="text-sm text-gray-400 mb-4">
-                Ready to start CPU mining with YescryptR32 algorithm
+                Ready to start CPU mining with Yespower algorithm
               </p>
               <div className="space-y-2">
                 <button className="w-full bg-whive hover:bg-purple-500 text-white py-2 px-4 rounded-lg transition-colors">
@@ -459,7 +459,7 @@ const WhivePage: React.FC = () => {
             <div>
               <h4 className="font-semibold text-white mb-1">Start Mining</h4>
               <p className="text-sm text-gray-400">
-                Begin CPU mining with optimized YescryptR32 algorithm
+                Begin CPU mining with optimized Yespower algorithm
               </p>
             </div>
           </div>

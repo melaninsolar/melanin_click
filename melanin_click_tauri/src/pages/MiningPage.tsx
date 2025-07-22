@@ -207,7 +207,7 @@ const MiningPage: React.FC = () => {
                     </div>
                     <div>
                       <h4 className="font-semibold">Whive Mining</h4>
-                      <p className="text-xs text-gray-400">YescryptR32 Algorithm</p>
+                      <p className="text-xs text-gray-400">Yespower Algorithm</p>
                     </div>
                   </div>
                   <div className="text-left">

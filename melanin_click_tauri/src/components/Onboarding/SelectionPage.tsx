@@ -48,7 +48,7 @@ const SelectionPage: React.FC<SelectionPageProps> = ({ onSelection, onBack }) =>
       borderColor: 'border-whive',
       features: [
         'Whive node operations',
-        'YescryptR32 CPU mining',
+        'Yespower CPU mining',
         'Low power consumption',
         'Optimized for CPU mining',
         'Sustainable mining approach'
