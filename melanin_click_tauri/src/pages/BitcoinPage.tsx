@@ -1,48 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { Bitcoin, Download, Play, Pause, Activity, Thermometer, Zap, RefreshCw, Loader, CheckCircle, Database, Globe, TrendingUp, Battery, AlertCircle, HardDrive, Clock, Settings } from 'lucide-react';
 import { TauriService } from '../services/tauri';
 import { useNotifications } from '../hooks/useNotifications';
-import { MiningStats } from '../types';
+import { Play, Square, Download, Activity, Zap, Settings, Monitor, HardDrive, Cpu } from 'lucide-react';
+import MiningRiskWarning from '../components/Common/MiningRiskWarning';
 
 const BitcoinPage: React.FC = () => {
+  const { addNotification } = useNotifications();
+  
+  // Node states
+  const [isNodeRunning, setIsNodeRunning] = useState(false);
+  const [nodeStatus, setNodeStatus] = useState('Not Running');
+  const [nodeType, setNodeType] = useState<'mainnet' | 'pruned'>('mainnet');
+  const [useQt, setUseQt] = useState(false);
+  
+  // Mining states
+  const [bitcoinAddress, setBitcoinAddress] = useState('');
+  const [workerName, setWorkerName] = useState('waka'); // Changed from melanin_worker to match example
+  const [selectedPool, setSelectedPool] = useState('Public Pool'); // Changed from CKPool Solo to Public Pool
+  const [miningMode, setMiningMode] = useState<'cpu' | 'stick'>('cpu');
+  const [threads, setThreads] = useState(1);
+  const [isMining, setIsMining] = useState(false);
+  const [miningStats, setMiningStats] = useState<any>(null);
+  
+  // Available pools with enhanced information
+  const [availablePools, setAvailablePools] = useState<any[]>([]);
+  
+  // Loading states
   const [isDownloading, setIsDownloading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [isNodeRunning, setIsNodeRunning] = useState(false);
-  const [isMining, setIsMining] = useState(false);
-  const [nodeStatus, setNodeStatus] = useState<string>('Not Running');
-  const [bitcoinAddress, setBitcoinAddress] = useState('');
-  const [workerName, setWorkerName] = useState('melanin_worker');
-  const [selectedPool, setSelectedPool] = useState('CKPool Solo');
-  const [miningMode, setMiningMode] = useState<'cpu' | 'stick'>('cpu');
-  const [threads, setThreads] = useState(2);
-  const [miningStats, setMiningStats] = useState<MiningStats | null>(null);
-  const [downloadProgress, setDownloadProgress] = useState<{progress: number, status: string} | null>(null);
-  const { addNotification } = useNotifications();
+  const [downloadProgress, setDownloadProgress] = useState<any>(null);
 
-  const poolOptions = [
-    { name: 'CKPool Solo', url: 'stratum+tcp://solo.ckpool.org:3333', fee: '0%' },
-    { name: 'CKPool', url: 'stratum+tcp://stratum.ckpool.org:3333', fee: '0%' },
-    { name: 'Public Pool', url: 'stratum+tcp://public-pool.io:21496', fee: '1%' },
-    { name: 'Ocean Pool', url: 'stratum+tcp://stratum.ocean.xyz:3000', fee: '0%' },
-    { name: 'F2Pool', url: 'stratum+tcp://btc.f2pool.com:1314', fee: '2.5%' },
-  ];
+  // Risk warning states
+  const [showRiskWarning, setShowRiskWarning] = useState(false);
+  const [hasAcceptedRisks, setHasAcceptedRisks] = useState(false);
 
   useEffect(() => {
+    loadMiningPools();
     checkNodeStatus();
-    if (isMining) {
-      const interval = setInterval(updateMiningStats, 5000);
-      return () => clearInterval(interval);
+    updateMiningStats();
+    
+    // Set up periodic updates
+    const interval = setInterval(() => {
+      if (isNodeRunning) checkNodeStatus();
+      if (isMining) updateMiningStats();
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [isNodeRunning, isMining]);
+
+  const loadMiningPools = async () => {
+    try {
+      const pools = await TauriService.getMiningPools();
+      const bitcoinPools = pools.filter(pool => pool.algorithm === 'SHA-256');
+      setAvailablePools(bitcoinPools);
+    } catch (error) {
+      console.error('Failed to load mining pools:', error);
     }
-  }, [isMining]);
+  };
 
   const checkNodeStatus = async () => {
     try {
-      const status = await TauriService.checkBitcoinStatus();
-      setIsNodeRunning(true);
-      setNodeStatus('Running');
-      const parsed = JSON.parse(status);
-      if (parsed.blocks) {
-        setNodeStatus(`Synced - Block ${parsed.blocks}`);
+      const status = await TauriService.getNodeStatus('bitcoin_mainnet');
+      setIsNodeRunning(status.is_running);
+      if (status.is_running) {
+        setNodeStatus(`Synced ${status.sync_progress.toFixed(1)}% - Block ${status.block_height} - ${status.peer_count} peers`);
+      } else {
+        setNodeStatus('Not Running');
       }
     } catch (error) {
       setIsNodeRunning(false);
@@ -52,7 +75,7 @@ const BitcoinPage: React.FC = () => {
 
   const updateMiningStats = async () => {
     try {
-      const stats = await TauriService.getRealMiningStats('bitcoin');
+      const stats = await TauriService.getMiningStatus('bitcoin');
       setMiningStats(stats);
     } catch (error) {
       console.error('Failed to update mining stats:', error);
@@ -84,12 +107,15 @@ const BitcoinPage: React.FC = () => {
     }
   };
 
-  const handleStartMainnet = async () => {
+  const handleStartNode = async () => {
     setIsStarting(true);
     try {
-      addNotification('info', 'Starting Bitcoin Node', 'Launching Bitcoin Core mainnet node...');
+      const nodeTypeStr = nodeType === 'mainnet' ? 'mainnet' : 'pruned';
+      addNotification('info', 'Starting Bitcoin Node', `Launching Bitcoin Core ${nodeTypeStr} node...`);
 
-      const result = await TauriService.runBitcoinMainnet();
+      const result = nodeType === 'mainnet' 
+        ? await TauriService.runBitcoinMainnet(useQt)
+        : await TauriService.runBitcoinPruned(useQt);
       
       addNotification('success', 'Node Started', result);
       
@@ -108,27 +134,14 @@ const BitcoinPage: React.FC = () => {
     }
   };
 
-  const handleStartPruned = async () => {
-    setIsStarting(true);
+  const handleStopNode = async () => {
     try {
-      addNotification('info', 'Starting Bitcoin Node', 'Launching Bitcoin Core pruned node...');
-
-      const result = await TauriService.runBitcoinPruned();
-      
-      addNotification('success', 'Pruned Node Started', result);
-      
-      setIsNodeRunning(true);
-      setNodeStatus('Starting (Pruned)...');
-      
-      // Check status after a delay
-      setTimeout(() => {
-        checkNodeStatus();
-      }, 5000);
-      
+      const result = await TauriService.stopNode('bitcoin_mainnet');
+      addNotification('success', 'Node Stopped', result);
+      setIsNodeRunning(false);
+      setNodeStatus('Not Running');
     } catch (error) {
-      addNotification('error', 'Failed to Start Pruned Node', error as string);
-    } finally {
-      setIsStarting(false);
+      addNotification('error', 'Failed to Stop Node', error as string);
     }
   };
 
@@ -138,6 +151,28 @@ const BitcoinPage: React.FC = () => {
       return;
     }
 
+    // Check if mining executables are installed first
+    try {
+      const minersInstalled = await TauriService.checkFileExists('~/melanin_miners');
+      if (!minersInstalled) {
+        addNotification('error', 'Mining Setup Required', 'Please install mining executables first. Go to Settings → Download Mining Executables.');
+        return;
+      }
+    } catch (error) {
+      addNotification('error', 'Setup Check Failed', 'Could not verify mining setup. Please check Settings page.');
+      return;
+    }
+
+    // Show risk warning if not already accepted
+    if (!hasAcceptedRisks) {
+      setShowRiskWarning(true);
+      return;
+    }
+
+    await startMiningProcess();
+  };
+
+  const startMiningProcess = async () => {
     setIsStarting(true);
     try {
       addNotification('info', 'Validating Address', 'Checking Bitcoin address format...');
@@ -170,7 +205,7 @@ const BitcoinPage: React.FC = () => {
 
   const handleStopMining = async () => {
     try {
-      const result = await TauriService.stopMining();
+      const result = await TauriService.stopMining('bitcoin');
       addNotification('success', 'Mining Stopped', result);
       setIsMining(false);
       setMiningStats(null);
@@ -179,465 +214,382 @@ const BitcoinPage: React.FC = () => {
     }
   };
 
+  const handleAcceptRisks = () => {
+    setHasAcceptedRisks(true);
+    setShowRiskWarning(false);
+    addNotification('success', 'Risks Acknowledged', 'You have accepted mining risks. Starting mining process...');
+    // Automatically start mining after accepting risks
+    setTimeout(() => {
+      startMiningProcess();
+    }, 1000);
+  };
+
+  const handleDeclineRisks = () => {
+    setShowRiskWarning(false);
+    addNotification('info', 'Mining Cancelled', 'Mining operation cancelled. Risks must be acknowledged to proceed.');
+  };
+
+  const selectedPoolInfo = availablePools.find(pool => pool.name === selectedPool);
+
   return (
-    <div className="container mx-auto px-6 py-8 space-y-8">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-r from-bitcoin to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Bitcoin className="w-10 h-10 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold text-white mb-2">Bitcoin Protocol</h1>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          Professional Bitcoin mining and node management with SHA-256 algorithm
-        </p>
-      </div>
-
-      {/* Download Progress */}
-      {downloadProgress && (
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Loader className="w-5 h-5 text-bitcoin animate-spin" />
-            <h3 className="font-semibold text-white">Downloading Bitcoin Core</h3>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-            <div 
-              className="bg-bitcoin h-2 rounded-full transition-all duration-300" 
-              style={{ width: `${downloadProgress.progress}%` }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-400">{downloadProgress.status}</p>
-        </div>
-      )}
-
-      {/* Mining Control Panel */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-bitcoin/20 rounded-lg flex items-center justify-center">
-            <Zap className="w-5 h-5 text-bitcoin" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Bitcoin Mining Operations</h3>
-            <p className="text-sm text-gray-400">Configure and monitor SHA-256 mining</p>
-          </div>
-          <div className="ml-auto flex items-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${isMining ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
-            <span className="text-sm text-gray-400">{isMining ? 'Mining Active' : 'Mining Stopped'}</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
+            Bitcoin Mining & Node Management
+          </h1>
+          <p className="text-slate-400 text-lg">SHA-256 Mining with Professional Pool Connectivity</p>
+          
+          {/* Mining Safety Notice */}
+          <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/20 rounded-xl p-4 mt-4">
+            <p className="text-sm text-slate-300">
+              ⚠️ <strong>Safety Notice:</strong> Cryptocurrency mining involves significant risks to hardware, 
+              electrical systems, and finances. Always ensure proper cooling, electrical capacity, and 
+              risk management before proceeding.
+            </p>
           </div>
         </div>
 
+        {/* Node Management Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Panel - Mining Configuration */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-white mb-2">Bitcoin Address *</label>
-              <input
-                type="text"
-                value={bitcoinAddress}
-                onChange={(e) => setBitcoinAddress(e.target.value)}
-                placeholder="Enter your Bitcoin wallet address (e.g., 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa)"
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-2 focus:ring-bitcoin focus:border-transparent"
-                disabled={isMining}
-              />
-              <p className="text-xs text-gray-500 mt-1">Mining rewards will be sent to this address</p>
+          {/* Bitcoin Core Installation */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
+            <div className="flex items-center space-x-3 mb-4">
+              <Download className="w-5 h-5 text-orange-400" />
+              <h2 className="text-xl font-semibold text-white">Bitcoin Core Setup</h2>
             </div>
+            
+            {downloadProgress && (
+              <div className="mb-4 p-3 bg-slate-700/50 rounded-lg">
+                <div className="flex justify-between text-sm text-slate-300 mb-2">
+                  <span>{downloadProgress.status}</span>
+                  <span>{downloadProgress.progress}%</span>
+                </div>
+                <div className="w-full bg-slate-600 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-orange-400 to-orange-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${downloadProgress.progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={handleDownloadBitcoin}
+              disabled={isDownloading}
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              <Download className="w-4 h-4" />
+              <span>{isDownloading ? 'Downloading...' : 'Download & Install Bitcoin Core'}</span>
+            </button>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
+          {/* Node Control */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
+            <div className="flex items-center space-x-3 mb-4">
+              <Monitor className="w-5 h-5 text-orange-400" />
+              <h2 className="text-xl font-semibold text-white">Node Control</h2>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Node Type Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300">Node Type</label>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setNodeType('mainnet')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                      nodeType === 'mainnet' 
+                        ? 'bg-orange-600 text-white' 
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    Full Node
+                  </button>
+                  <button
+                    onClick={() => setNodeType('pruned')}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                      nodeType === 'pruned' 
+                        ? 'bg-orange-600 text-white' 
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    Pruned (550MB)
+                  </button>
+                </div>
+              </div>
+
+              {/* Interface Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300">Interface</label>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setUseQt(false)}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                      !useQt 
+                        ? 'bg-orange-600 text-white' 
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    bitcoind (Daemon)
+                  </button>
+                  <button
+                    onClick={() => setUseQt(true)}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                      useQt 
+                        ? 'bg-orange-600 text-white' 
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    bitcoin-qt (GUI)
+                  </button>
+                </div>
+              </div>
+
+              {/* Node Status */}
+              <div className="p-3 bg-slate-700/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-300">Status:</span>
+                  <span className={`text-sm font-medium ${isNodeRunning ? 'text-green-400' : 'text-slate-400'}`}>
+                    {nodeStatus}
+                  </span>
+                </div>
+              </div>
+
+              {/* Node Controls */}
+              <div className="flex space-x-3">
+                {!isNodeRunning ? (
+                  <button
+                    onClick={handleStartNode}
+                    disabled={isStarting}
+                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 flex items-center justify-center space-x-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    <span>{isStarting ? 'Starting...' : 'Start Node'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStopNode}
+                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                  >
+                    <Square className="w-4 h-4" />
+                    <span>Stop Node</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mining Configuration */}
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
+          <div className="flex items-center space-x-3 mb-6">
+            <Zap className="w-5 h-5 text-orange-400" />
+            <h2 className="text-2xl font-semibold text-white">Bitcoin Mining Configuration</h2>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Mining Settings */}
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white mb-2">Worker Name</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Bitcoin Address <span className="text-red-400">*</span>
+                </label>
                 <input
                   type="text"
-                  value={workerName}
-                  onChange={(e) => setWorkerName(e.target.value)}
-                  placeholder="melanin_worker"
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-2 focus:ring-bitcoin focus:border-transparent"
-                  disabled={isMining}
+                  value={bitcoinAddress}
+                  onChange={(e) => setBitcoinAddress(e.target.value)}
+                  placeholder="bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Worker Name</label>
+                  <input
+                    type="text"
+                    value={workerName}
+                    onChange={(e) => setWorkerName(e.target.value)}
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Mining Mode</label>
+                  <select
+                    value={miningMode}
+                    onChange={(e) => setMiningMode(e.target.value as 'cpu' | 'stick')}
+                    className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                  >
+                    <option value="cpu">CPU Mining</option>
+                    <option value="stick">USB Stick Miner</option>
+                  </select>
+                </div>
+              </div>
+
+              {miningMode === 'cpu' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    CPU Threads ({threads})
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="8"
+                    value={threads}
+                    onChange={(e) => setThreads(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <div className="flex justify-between text-xs text-slate-400 mt-1">
+                    <span>1</span>
+                    <span>8</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pool Selection */}
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white mb-2">Mining Pool</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Mining Pool</label>
                 <select
                   value={selectedPool}
                   onChange={(e) => setSelectedPool(e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-bitcoin focus:border-transparent"
-                  disabled={isMining}
+                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
                 >
-                  {poolOptions.map((pool) => (
+                  {availablePools.map(pool => (
                     <option key={pool.name} value={pool.name}>
-                      {pool.name} ({pool.fee})
+                      {pool.name} - {pool.fee}% fee
                     </option>
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">Mining Device</label>
-                <select
-                  value={miningMode}
-                  onChange={(e) => setMiningMode(e.target.value as 'cpu' | 'stick')}
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-bitcoin focus:border-transparent"
-                  disabled={isMining}
-                >
-                  <option value="cpu">CPU Mining</option>
-                  <option value="stick">Stick Miner (ASIC)</option>
-                </select>
-              </div>
-              {miningMode === 'cpu' && (
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">CPU Threads</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="16"
-                    value={threads}
-                    onChange={(e) => setThreads(parseInt(e.target.value) || 1)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-bitcoin focus:border-transparent"
-                    disabled={isMining}
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex space-x-4">
-              {!isMining ? (
-                <button
-                  onClick={handleStartBitcoinMining}
-                  disabled={isStarting || !bitcoinAddress.trim()}
-                  className="flex-1 bg-gradient-to-r from-bitcoin to-yellow-500 hover:from-yellow-500 hover:to-bitcoin disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center space-x-2"
-                >
-                  {isStarting ? (
-                    <>
-                      <Loader className="w-4 h-4 animate-spin" />
-                      <span>Starting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4" />
-                      <span>Start Mining</span>
-                    </>
+              {/* Pool Information */}
+              {selectedPoolInfo && (
+                <div className="p-4 bg-slate-700/30 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">Pool URL:</span>
+                    <span className="text-sm font-mono text-orange-400">{selectedPoolInfo.url}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">Fee:</span>
+                    <span className="text-sm text-white">{selectedPoolInfo.fee}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-300">Location:</span>
+                    <span className="text-sm text-white">{selectedPoolInfo.location}</span>
+                  </div>
+                  {selectedPoolInfo.latency && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-slate-300">Latency:</span>
+                      <span className="text-sm text-green-400">{selectedPoolInfo.latency}ms</span>
+                    </div>
                   )}
-                </button>
-              ) : (
-                <button
-                  onClick={handleStopMining}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-all flex items-center justify-center space-x-2"
-                >
-                  <Pause className="w-4 h-4" />
-                  <span>Stop Mining</span>
-                </button>
+                  <p className="text-xs text-slate-400 mt-2">{selectedPoolInfo.description}</p>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Right Panel - Pool Information */}
-          <div className="bg-gray-700/30 rounded-lg p-4">
-            <h4 className="font-semibold text-white mb-3">Selected Pool Details</h4>
-            {poolOptions.find(p => p.name === selectedPool) && (
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Pool:</span>
-                  <span className="text-white">{selectedPool}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">URL:</span>
-                  <span className="text-white text-sm">{poolOptions.find(p => p.name === selectedPool)?.url}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Fee:</span>
-                  <span className="text-white">{poolOptions.find(p => p.name === selectedPool)?.fee}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Algorithm:</span>
-                  <span className="text-white">SHA-256</span>
-                </div>
-              </div>
+          {/* Mining Controls */}
+          <div className="mt-6 flex justify-center space-x-4">
+            {/* Simple Test Button - Like Python Script */}
+            <button
+              onClick={async () => {
+                if (!bitcoinAddress.trim()) {
+                  addNotification('error', 'Missing Address', 'Please enter a Bitcoin address.');
+                  return;
+                }
+                try {
+                  const result = await TauriService.startSimpleBitcoinMining(bitcoinAddress.trim(), workerName);
+                  addNotification('success', 'Mining Started in Terminal', result);
+                } catch (error) {
+                  addNotification('error', 'Mining Failed', error as string);
+                }
+              }}
+              disabled={!bitcoinAddress}
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              <Play className="w-5 h-5" />
+              <span>🧪 Test Simple Mining (Terminal)</span>
+            </button>
+
+            {/* Original Button */}
+            {!isMining ? (
+              <button
+                onClick={handleStartBitcoinMining}
+                disabled={isStarting || !bitcoinAddress}
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                <Play className="w-5 h-5" />
+                <span>{isStarting ? 'Starting Mining...' : 'Start Bitcoin Mining'}</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleStopMining}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-3 px-8 rounded-lg transition-all duration-200 flex items-center space-x-2"
+              >
+                <Square className="w-5 h-5" />
+                <span>Stop Mining</span>
+              </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Mining Statistics */}
-      {isMining && miningStats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-            <div className="text-2xl font-bold text-white mb-1">
-              {miningStats.hashrate.toFixed(1)}
+        {/* Mining Statistics */}
+        {miningStats && (
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
+            <div className="flex items-center space-x-3 mb-4">
+              <Activity className="w-5 h-5 text-orange-400" />
+              <h2 className="text-xl font-semibold text-white">Mining Statistics</h2>
             </div>
-            <div className="text-sm text-gray-400">H/s</div>
-          </div>
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-            <div className="text-2xl font-bold text-white mb-1">
-              {miningStats.accepted_shares}
-            </div>
-            <div className="text-sm text-gray-400">Accepted</div>
-          </div>
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-            <div className="text-2xl font-bold text-white mb-1">
-              {miningStats.temperature.toFixed(1)}°C
-            </div>
-            <div className="text-sm text-gray-400">Temperature</div>
-          </div>
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-            <div className="text-2xl font-bold text-white mb-1">
-              {miningStats.power_consumption.toFixed(0)}W
-            </div>
-            <div className="text-sm text-gray-400">Power</div>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <button 
-          onClick={handleDownloadBitcoin}
-          disabled={isDownloading}
-          className="bg-gradient-to-r from-bitcoin to-yellow-500 hover:from-yellow-500 hover:to-bitcoin disabled:opacity-50 disabled:cursor-not-allowed text-white p-6 rounded-xl transition-all duration-200 transform hover:scale-105"
-        >
-          {isDownloading ? (
-            <Loader className="w-8 h-8 mx-auto mb-3 animate-spin" />
-          ) : (
-            <Download className="w-8 h-8 mx-auto mb-3" />
-          )}
-          <h3 className="font-semibold mb-2">
-            {isDownloading ? 'Downloading...' : 'Install Bitcoin Core'}
-          </h3>
-          <p className="text-sm text-white/80">Download and install Bitcoin Core 29.0</p>
-        </button>
-
-        <button 
-          onClick={handleStartMainnet}
-          disabled={isStarting || isNodeRunning}
-          className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 hover:border-bitcoin/50 disabled:opacity-50 disabled:cursor-not-allowed text-white p-6 rounded-xl transition-all duration-200 transform hover:scale-105"
-        >
-          {isStarting ? (
-            <Loader className="w-8 h-8 mx-auto mb-3 animate-spin text-green-500" />
-          ) : isNodeRunning ? (
-            <CheckCircle className="w-8 h-8 mx-auto mb-3 text-green-500" />
-          ) : (
-            <Play className="w-8 h-8 mx-auto mb-3 text-green-500" />
-          )}
-          <h3 className="font-semibold mb-2">
-            {isStarting ? 'Starting...' : isNodeRunning ? 'Node Running' : 'Start Mainnet'}
-          </h3>
-          <p className="text-sm text-gray-400">Launch Bitcoin Core daemon (full node)</p>
-        </button>
-
-        <button 
-          onClick={handleStartPruned}
-          disabled={isStarting || isNodeRunning}
-          className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 hover:border-bitcoin/50 disabled:opacity-50 disabled:cursor-not-allowed text-white p-6 rounded-xl transition-all duration-200 transform hover:scale-105"
-        >
-          {isStarting ? (
-            <Loader className="w-8 h-8 mx-auto mb-3 animate-spin text-blue-500" />
-          ) : (
-            <Settings className="w-8 h-8 mx-auto mb-3 text-blue-500" />
-          )}
-          <h3 className="font-semibold mb-2">
-            {isStarting ? 'Starting...' : 'Start Pruned'}
-          </h3>
-          <p className="text-sm text-gray-400">Launch pruned node (saves disk space)</p>
-        </button>
-      </div>
-
-      {/* Mining Mode Select */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 mb-8">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-            <AlertCircle className="w-5 h-5 text-purple-500" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Mining Mode</h3>
-            <p className="text-sm text-gray-400">Choose your mining mode</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-4">
-          <label htmlFor="miningMode" className="text-white font-semibold">Mining Mode:</label>
-          <select 
-            id="miningMode" 
-            value={miningMode} 
-            onChange={(e) => setMiningMode(e.target.value as 'cpu' | 'stick')}
-            className="bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-bitcoin/50"
-          >
-            <option value="cpu">CPU</option>
-            <option value="stick">Stick Miner</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Status Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Node Status */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-bitcoin/20 rounded-lg flex items-center justify-center">
-                <Globe className="w-5 h-5 text-bitcoin" />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Cpu className="w-4 h-4 text-orange-400" />
+                  <span className="text-sm text-slate-300">Hashrate</span>
+                </div>
+                <span className="text-2xl font-bold text-white">{miningStats.hashrate.toFixed(2)} H/s</span>
               </div>
-              <div>
-                <h3 className="font-semibold text-white">Node Status</h3>
-                <p className="text-sm text-gray-400">Bitcoin Core Daemon</p>
+              
+              <div className="p-4 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Activity className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-slate-300">Accepted Shares</span>
+                </div>
+                <span className="text-2xl font-bold text-white">{miningStats.accepted_shares}</span>
               </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${isNodeRunning ? 'bg-green-500' : 'bg-gray-500'}`}></div>
-              <span className="text-sm text-gray-400">{nodeStatus}</span>
-              <button 
-                onClick={checkNodeStatus}
-                className="text-bitcoin hover:text-yellow-500 transition-colors ml-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Database className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-300">Blockchain Sync</span>
+              
+              <div className="p-4 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <HardDrive className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm text-slate-300">Temperature</span>
+                </div>
+                <span className="text-2xl font-bold text-white">{miningStats.temperature.toFixed(1)}°C</span>
               </div>
-              <span className="text-sm text-gray-400">
-                {isNodeRunning ? 'Syncing...' : 'Not Started'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Globe className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-300">Network</span>
-              </div>
-              <span className="text-sm text-gray-400">
-                {isNodeRunning ? 'Connected' : 'Disconnected'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <TrendingUp className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-300">Peers</span>
-              </div>
-              <span className="text-sm text-gray-400">
-                {isNodeRunning ? 'Connecting...' : '0 connections'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Wallet Overview */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                <Database className="w-5 h-5 text-green-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">Wallet</h3>
-                <p className="text-sm text-gray-400">Bitcoin Wallet</p>
-              </div>
-            </div>
-            <button className="text-bitcoin hover:text-yellow-500 transition-colors">
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div className="text-center py-8">
-              <Database className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h4 className="font-semibold text-white mb-2">No Wallet Loaded</h4>
-              <p className="text-sm text-gray-400 mb-4">
-                Create a new wallet or load an existing one to get started
-              </p>
-              <div className="space-y-2">
-                <button className="w-full bg-bitcoin hover:bg-yellow-500 text-white py-2 px-4 rounded-lg transition-colors">
-                  Create New Wallet
-                </button>
-                <button className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors">
-                  Load Existing Wallet
-                </button>
+              
+              <div className="p-4 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Zap className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm text-slate-300">Power Usage</span>
+                </div>
+                <span className="text-2xl font-bold text-white">{miningStats.power_consumption.toFixed(1)}W</span>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Installation Guide */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-            <AlertCircle className="w-5 h-5 text-blue-500" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Getting Started</h3>
-            <p className="text-sm text-gray-400">Follow these steps to set up Bitcoin Core</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-start space-x-4 p-4 bg-gray-700/30 rounded-lg">
-            <div className="w-8 h-8 bg-bitcoin/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-              <span className="text-bitcoin font-semibold text-sm">1</span>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-1">Download Bitcoin Core</h4>
-              <p className="text-sm text-gray-400 mb-2">
-                Download the latest Bitcoin Core 28.2 for your operating system
-              </p>
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <HardDrive className="w-3 h-3" />
-                <span>~500GB disk space required for full node</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-4 p-4 bg-gray-700/30 rounded-lg">
-            <div className="w-8 h-8 bg-gray-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-              <span className="text-gray-500 font-semibold text-sm">2</span>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-1">Configure Settings</h4>
-              <p className="text-sm text-gray-400 mb-2">
-                Set up bitcoin.conf file and configure network settings
-              </p>
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <Clock className="w-3 h-3" />
-                <span>Initial sync may take 6-24 hours</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-start space-x-4 p-4 bg-gray-700/30 rounded-lg">
-            <div className="w-8 h-8 bg-gray-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-              <span className="text-gray-500 font-semibold text-sm">3</span>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-1">Start Node</h4>
-              <p className="text-sm text-gray-400">
-                Launch Bitcoin Core daemon and begin blockchain synchronization
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-          <div className="text-2xl font-bold text-white mb-1">0</div>
-          <div className="text-sm text-gray-400">Blocks</div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-          <div className="text-2xl font-bold text-white mb-1">0</div>
-          <div className="text-sm text-gray-400">Peers</div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-          <div className="text-2xl font-bold text-white mb-1">0.00</div>
-          <div className="text-sm text-gray-400">BTC Balance</div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-          <div className="text-2xl font-bold text-white mb-1">0</div>
-          <div className="text-sm text-gray-400">Transactions</div>
-        </div>
+        {/* Mining Risk Warning Modal */}
+        <MiningRiskWarning
+          isOpen={showRiskWarning}
+          miningType="bitcoin"
+          onAccept={handleAcceptRisks}
+          onDecline={handleDeclineRisks}
+        />
       </div>
     </div>
   );

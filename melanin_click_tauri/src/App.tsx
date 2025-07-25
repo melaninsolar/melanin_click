@@ -168,10 +168,16 @@ const App: React.FC = () => {
   // Show loading screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-white text-lg">Loading Melanin Click...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-r-primary-400 rounded-full animate-spin-slow"></div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-white text-xl font-semibold">Loading Melanin Click</p>
+            <p className="text-slate-400">Initializing your mining interface...</p>
+          </div>
         </div>
       </div>
     );
@@ -190,8 +196,6 @@ const App: React.FC = () => {
         return <WelcomePage onContinue={handleWelcomeContinue} />;
     }
   }
-
-
 
   // Render current page
   const renderCurrentPage = () => {
@@ -247,7 +251,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
       <Header 
         currentPage={currentPage} 
         onPageChange={setCurrentPage}
@@ -256,7 +260,12 @@ const App: React.FC = () => {
       />
       
       <main className="flex-1 flex flex-col">
-        {renderCurrentPage()}
+        {/* Main content wrapper with consistent padding and max-width */}
+        <div className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+          <div className="h-full">
+            {renderCurrentPage()}
+          </div>
+        </div>
       </main>
 
       <ProcessStatusBar processStatuses={processStatuses} />

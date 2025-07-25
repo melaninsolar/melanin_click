@@ -1,36 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { Cpu, Download, Play, Pause, Activity, Thermometer, Zap, RefreshCw, Loader, CheckCircle, Database, Globe, TrendingUp, Battery, AlertCircle, HardDrive, Clock } from 'lucide-react';
 import { TauriService } from '../services/tauri';
 import { useNotifications } from '../hooks/useNotifications';
-import { MiningStats } from '../types';
+import { Play, Square, Download, Activity, Zap, Settings, Monitor, HardDrive, Cpu } from 'lucide-react';
+import MiningRiskWarning from '../components/Common/MiningRiskWarning';
 
 const WhivePage: React.FC = () => {
+  const { addNotification } = useNotifications();
+  
+  // Node states
+  const [isNodeRunning, setIsNodeRunning] = useState(false);
+  const [nodeStatus, setNodeStatus] = useState('Not Running');
+  const [useQt, setUseQt] = useState(false);
+  
+  // Mining states
+  const [whiveAddress, setWhiveAddress] = useState('');
+  const [threads, setThreads] = useState(2); // Changed from 4 to 2 to match example
+  const [intensity, setIntensity] = useState(85);
+  const [isMining, setIsMining] = useState(false);
+  const [miningStats, setMiningStats] = useState<any>(null);
+  
+  // Loading states
   const [isDownloading, setIsDownloading] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
-  const [isNodeRunning, setIsNodeRunning] = useState(false);
-  const [isMining, setIsMining] = useState(false);
-  const [nodeStatus, setNodeStatus] = useState<string>('Not Running');
-  const [miningStats, setMiningStats] = useState<MiningStats | null>(null);
-  const [whiveAddress, setWhiveAddress] = useState('');
-  const [downloadProgress, setDownloadProgress] = useState<{progress: number, status: string} | null>(null);
-  const { addNotification } = useNotifications();
+  const [downloadProgress, setDownloadProgress] = useState<any>(null);
+
+  // Risk warning states
+  const [showRiskWarning, setShowRiskWarning] = useState(false);
+  const [hasAcceptedRisks, setHasAcceptedRisks] = useState(false);
 
   useEffect(() => {
     checkNodeStatus();
-    if (isMining) {
-      const interval = setInterval(updateMiningStats, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [isMining]);
+    updateMiningStats();
+    
+    // Set up periodic updates
+    const interval = setInterval(() => {
+      if (isNodeRunning) checkNodeStatus();
+      if (isMining) updateMiningStats();
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [isNodeRunning, isMining]);
 
   const checkNodeStatus = async () => {
     try {
-      const status = await TauriService.checkWhiveStatus();
-      setIsNodeRunning(true);
-      setNodeStatus('Running');
-      const parsed = JSON.parse(status);
-      if (parsed.blocks) {
-        setNodeStatus(`Synced - Block ${parsed.blocks}`);
+      const status = await TauriService.getNodeStatus('whive_node');
+      setIsNodeRunning(status.is_running);
+      if (status.is_running) {
+        setNodeStatus(`Synced ${status.sync_progress.toFixed(1)}% - Block ${status.block_height} - ${status.peer_count} peers`);
+      } else {
+        setNodeStatus('Not Running');
       }
     } catch (error) {
       setIsNodeRunning(false);
@@ -40,7 +58,7 @@ const WhivePage: React.FC = () => {
 
   const updateMiningStats = async () => {
     try {
-      const stats = await TauriService.getRealMiningStats('whive');
+      const stats = await TauriService.getMiningStatus('whive');
       setMiningStats(stats);
     } catch (error) {
       console.error('Failed to update mining stats:', error);
@@ -52,7 +70,7 @@ const WhivePage: React.FC = () => {
     setDownloadProgress({ progress: 0, status: 'Starting download...' });
     
     try {
-      addNotification('info', 'Whive Download', 'Starting Whive download...');
+      addNotification('info', 'Whive Core Download', 'Starting Whive Core download...');
 
       const result = await TauriService.downloadAndInstallWhive();
       
@@ -77,7 +95,7 @@ const WhivePage: React.FC = () => {
     try {
       addNotification('info', 'Starting Whive Node', 'Launching Whive node...');
 
-      const result = await TauriService.runWhiveNode();
+      const result = await TauriService.runWhiveNode(useQt);
       
       addNotification('success', 'Node Started', result);
       
@@ -96,398 +114,417 @@ const WhivePage: React.FC = () => {
     }
   };
 
+  const handleStopNode = async () => {
+    try {
+      const result = await TauriService.stopNode('whive_node');
+      addNotification('success', 'Node Stopped', result);
+      setIsNodeRunning(false);
+      setNodeStatus('Not Running');
+    } catch (error) {
+      addNotification('error', 'Failed to Stop Node', error as string);
+    }
+  };
+
   const handleStartMining = async () => {
     if (!whiveAddress.trim()) {
-      addNotification('error', 'Mining Error', 'Please enter a valid Whive address');
+      addNotification('error', 'Missing Address', 'Please enter a Whive address to receive mining rewards.');
       return;
     }
 
+    // Check if mining executables are installed first
     try {
-      // Validate address first
+      const minersInstalled = await TauriService.checkFileExists('~/melanin_miners');
+      if (!minersInstalled) {
+        addNotification('error', 'Mining Setup Required', 'Please install mining executables first. Go to Settings → Download Mining Executables.');
+        return;
+      }
+    } catch (error) {
+      addNotification('error', 'Setup Check Failed', 'Could not verify mining setup. Please check Settings page.');
+      return;
+    }
+
+    // Show risk warning if not already accepted
+    if (!hasAcceptedRisks) {
+      setShowRiskWarning(true);
+      return;
+    }
+
+    await startMiningProcess();
+  };
+
+  const startMiningProcess = async () => {
+    setIsStarting(true);
+    try {
       addNotification('info', 'Validating Address', 'Checking Whive address format...');
+      
       const isValid = await TauriService.validateWhiveAddress(whiveAddress.trim());
       if (!isValid) {
-        addNotification('error', 'Invalid Address', 'Please enter a valid Whive address format');
+        addNotification('error', 'Invalid Address', 'Please enter a valid Whive address format.');
         return;
       }
 
-      addNotification('info', 'Starting Mining', 'Initializing Whive mining...');
+      addNotification('info', 'Starting Mining', 'Initializing Whive Yespower mining...');
 
       const result = await TauriService.startEnhancedWhiveMining(
         whiveAddress.trim(),
-        4, // Use 4 threads for optimal CPU mining
-        85 // High intensity for dedicated mining
+        threads,
+        intensity
       );
       
       addNotification('success', 'Mining Started', result);
-      
       setIsMining(true);
       updateMiningStats();
       
     } catch (error) {
       addNotification('error', 'Mining Failed', error as string);
+    } finally {
+      setIsStarting(false);
     }
   };
 
   const handleStopMining = async () => {
     try {
-      const result = await TauriService.stopMining();
-      
+      const result = await TauriService.stopMining('whive');
       addNotification('success', 'Mining Stopped', result);
-      
       setIsMining(false);
       setMiningStats(null);
-      
     } catch (error) {
       addNotification('error', 'Failed to Stop Mining', error as string);
     }
   };
 
+  const handleAcceptRisks = () => {
+    setHasAcceptedRisks(true);
+    setShowRiskWarning(false);
+    addNotification('success', 'Risks Acknowledged', 'You have accepted mining risks. Starting mining process...');
+    // Automatically start mining after accepting risks
+    setTimeout(() => {
+      startMiningProcess();
+    }, 1000);
+  };
+
+  const handleDeclineRisks = () => {
+    setShowRiskWarning(false);
+    addNotification('info', 'Mining Cancelled', 'Mining operation cancelled. Risks must be acknowledged to proceed.');
+  };
+
   return (
-    <div className="container mx-auto px-6 py-8 space-y-8">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-r from-whive to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Cpu className="w-10 h-10 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold text-white mb-2">Whive Protocol</h1>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          CPU-optimized cryptocurrency mining with Yespower algorithm
-        </p>
-      </div>
-
-      {/* Download Progress */}
-      {downloadProgress && (
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 mb-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <Loader className="w-5 h-5 text-whive animate-spin" />
-            <h3 className="font-semibold text-white">Downloading Whive</h3>
-          </div>
-          <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-            <div 
-              className="bg-whive h-2 rounded-full transition-all duration-300" 
-              style={{ width: `${downloadProgress.progress}%` }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-400">{downloadProgress.status}</p>
-        </div>
-      )}
-
-      {/* Mining Controls */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-whive/20 rounded-lg flex items-center justify-center">
-            <Zap className="w-5 h-5 text-whive" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Mining Operations</h3>
-            <p className="text-sm text-gray-400">Yespower CPU Mining</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent">
+            Whive Mining & Node Management
+          </h1>
+          <p className="text-slate-400 text-lg">Yespower CPU Mining with Optimized Performance</p>
+          
+          {/* Mining Safety Notice */}
+          <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/20 rounded-xl p-4 mt-4">
+            <p className="text-sm text-slate-300">
+              ⚠️ <strong>Safety Notice:</strong> CPU mining generates significant heat and power consumption. 
+              Monitor temperatures closely and ensure adequate cooling to prevent hardware damage.
+            </p>
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">Whive Address</label>
-            <input
-              type="text"
-              value={whiveAddress}
-              onChange={(e) => setWhiveAddress(e.target.value)}
-              placeholder="Enter your Whive wallet address"
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:ring-2 focus:ring-whive focus:border-transparent"
-            />
-          </div>
-
-          <div className="flex space-x-4">
+        {/* Node Management Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Whive Core Installation */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
+            <div className="flex items-center space-x-3 mb-4">
+              <Download className="w-5 h-5 text-purple-400" />
+              <h2 className="text-xl font-semibold text-white">Whive Core Setup</h2>
+            </div>
+            
+            {downloadProgress && (
+              <div className="mb-4 p-3 bg-slate-700/50 rounded-lg">
+                <div className="flex justify-between text-sm text-slate-300 mb-2">
+                  <span>{downloadProgress.status}</span>
+                  <span>{downloadProgress.progress}%</span>
+                </div>
+                <div className="w-full bg-slate-600 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-purple-400 to-purple-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${downloadProgress.progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            
             <button
-              onClick={handleStartMining}
-              disabled={isMining || !whiveAddress.trim()}
-              className="flex-1 bg-gradient-to-r from-whive to-purple-500 hover:from-purple-500 hover:to-whive disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105"
+              onClick={handleDownloadWhive}
+              disabled={isDownloading}
+              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
             >
-              <div className="flex items-center justify-center space-x-2">
-                <Play className="w-5 h-5" />
-                <span>{isMining ? 'Mining Active' : 'Start Mining'}</span>
-              </div>
-            </button>
-
-            <button
-              onClick={handleStopMining}
-              disabled={!isMining}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg transition-colors"
-            >
-              <div className="flex items-center justify-center space-x-2">
-                <Pause className="w-5 h-5" />
-                <span>Stop Mining</span>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <button 
-          onClick={handleDownloadWhive}
-          disabled={isDownloading}
-          className="bg-gradient-to-r from-whive to-purple-500 hover:from-purple-500 hover:to-whive disabled:opacity-50 disabled:cursor-not-allowed text-white p-6 rounded-xl transition-all duration-200 transform hover:scale-105"
-        >
-          {isDownloading ? (
-            <Loader className="w-8 h-8 mx-auto mb-3 animate-spin" />
-          ) : (
-            <Download className="w-8 h-8 mx-auto mb-3" />
-          )}
-          <h3 className="font-semibold mb-2">
-            {isDownloading ? 'Downloading...' : 'Install Whive'}
-          </h3>
-          <p className="text-sm text-white/80">Download and install Whive 22.2.2</p>
-        </button>
-
-        <button 
-          onClick={handleStartNode}
-          disabled={isStarting || isNodeRunning}
-          className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 hover:border-whive/50 disabled:opacity-50 disabled:cursor-not-allowed text-white p-6 rounded-xl transition-all duration-200 transform hover:scale-105"
-        >
-          {isStarting ? (
-            <Loader className="w-8 h-8 mx-auto mb-3 animate-spin text-green-500" />
-          ) : isNodeRunning ? (
-            <CheckCircle className="w-8 h-8 mx-auto mb-3 text-green-500" />
-          ) : (
-            <Play className="w-8 h-8 mx-auto mb-3 text-green-500" />
-          )}
-          <h3 className="font-semibold mb-2">
-            {isStarting ? 'Starting...' : isNodeRunning ? 'Node Running' : 'Start Node'}
-          </h3>
-          <p className="text-sm text-gray-400">Launch Whive Core daemon</p>
-        </button>
-      </div>
-
-      {/* Performance & Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Mining Performance */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                <Activity className="w-5 h-5 text-green-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">Node Status</h3>
-                <p className="text-sm text-gray-400">Whive Daemon</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className={`w-3 h-3 rounded-full ${isNodeRunning ? 'bg-green-500' : 'bg-gray-500'}`}></div>
-              <span className="text-sm text-gray-400">{nodeStatus}</span>
-              <button 
-                onClick={checkNodeStatus}
-                className="text-whive hover:text-purple-500 transition-colors ml-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Database className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-300">Blockchain Sync</span>
-              </div>
-              <span className="text-sm text-gray-400">
-                {isNodeRunning ? 'Syncing...' : 'Not Started'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <Globe className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-300">Network</span>
-              </div>
-              <span className="text-sm text-gray-400">
-                {isNodeRunning ? 'Connected' : 'Disconnected'}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <TrendingUp className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-300">Peers</span>
-              </div>
-              <span className="text-sm text-gray-400">
-                {isNodeRunning ? 'Connecting...' : '0 connections'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Mining Status */}
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                <Zap className="w-5 h-5 text-yellow-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-white">Mining Status</h3>
-                <p className="text-sm text-gray-400">CPU Mining</p>
-              </div>
-            </div>
-            <button className="text-whive hover:text-purple-500 transition-colors">
-              <RefreshCw className="w-4 h-4" />
+              <Download className="w-4 h-4" />
+              <span>{isDownloading ? 'Downloading...' : 'Download & Install Whive Core'}</span>
             </button>
           </div>
 
-          <div className="space-y-4">
-            <div className="text-center py-8">
-              <Zap className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-              <h4 className="font-semibold text-white mb-2">Mining Stopped</h4>
-              <p className="text-sm text-gray-400 mb-4">
-                Ready to start CPU mining with Yespower algorithm
-              </p>
+          {/* Node Control */}
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
+            <div className="flex items-center space-x-3 mb-4">
+              <Monitor className="w-5 h-5 text-purple-400" />
+              <h2 className="text-xl font-semibold text-white">Node Control</h2>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Interface Selection */}
               <div className="space-y-2">
-                <button className="w-full bg-whive hover:bg-purple-500 text-white py-2 px-4 rounded-lg transition-colors">
-                  Start Mining
-                </button>
-                <button className="w-full bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors">
-                  Mining Settings
-                </button>
+                <label className="text-sm font-medium text-slate-300">Interface</label>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setUseQt(false)}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                      !useQt 
+                        ? 'bg-purple-600 text-white' 
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    whived (Daemon)
+                  </button>
+                  <button
+                    onClick={() => setUseQt(true)}
+                    className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                      useQt 
+                        ? 'bg-purple-600 text-white' 
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    whive-qt (GUI)
+                  </button>
+                </div>
+              </div>
+
+              {/* Node Status */}
+              <div className="p-3 bg-slate-700/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-300">Status:</span>
+                  <span className={`text-sm font-medium ${isNodeRunning ? 'text-green-400' : 'text-slate-400'}`}>
+                    {nodeStatus}
+                  </span>
+                </div>
+              </div>
+
+              {/* Node Controls */}
+              <div className="flex space-x-3">
+                {!isNodeRunning ? (
+                  <button
+                    onClick={handleStartNode}
+                    disabled={isStarting}
+                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 flex items-center justify-center space-x-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    <span>{isStarting ? 'Starting...' : 'Start Node'}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStopNode}
+                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2"
+                  >
+                    <Square className="w-4 h-4" />
+                    <span>Stop Node</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* CPU Performance */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-            <Cpu className="w-5 h-5 text-green-500" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">CPU Performance</h3>
-            <p className="text-sm text-gray-400">Hardware optimization for Whive mining</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gray-700/30 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-300">CPU Usage</span>
-              <span className="text-sm text-white font-semibold">0%</span>
-            </div>
-            <div className="w-full bg-gray-600 rounded-full h-2">
-              <div className="bg-green-500 h-2 rounded-full w-0 transition-all duration-300"></div>
-            </div>
+        {/* Mining Configuration */}
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
+          <div className="flex items-center space-x-3 mb-6">
+            <Zap className="w-5 h-5 text-purple-400" />
+            <h2 className="text-2xl font-semibold text-white">Whive Mining Configuration</h2>
           </div>
 
-          <div className="bg-gray-700/30 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Thermometer className="w-4 h-4 text-orange-500" />
-                <span className="text-sm text-gray-300">Temperature</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Mining Settings */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Whive Address <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={whiveAddress}
+                  onChange={(e) => setWhiveAddress(e.target.value)}
+                  placeholder="WmBRGi5VzVTmCHt6Rj1TGBh5s2QtJJkKKN"
+                  className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                />
               </div>
-              <span className="text-sm text-white font-semibold">--°C</span>
-            </div>
-            <div className="w-full bg-gray-600 rounded-full h-2">
-              <div className="bg-orange-500 h-2 rounded-full w-0 transition-all duration-300"></div>
-            </div>
-          </div>
 
-          <div className="bg-gray-700/30 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Battery className="w-4 h-4 text-blue-500" />
-                <span className="text-sm text-gray-300">Power</span>
-              </div>
-              <span className="text-sm text-white font-semibold">0W</span>
-            </div>
-            <div className="w-full bg-gray-600 rounded-full h-2">
-              <div className="bg-blue-500 h-2 rounded-full w-0 transition-all duration-300"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    CPU Threads ({threads})
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="16"
+                    value={threads}
+                    onChange={(e) => setThreads(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <div className="flex justify-between text-xs text-slate-400 mt-1">
+                    <span>1</span>
+                    <span>16</span>
+                  </div>
+                </div>
 
-      {/* Installation Guide */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-            <AlertCircle className="w-5 h-5 text-blue-500" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-white">Getting Started with Whive</h3>
-            <p className="text-sm text-gray-400">Follow these steps to set up Whive mining</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-start space-x-4 p-4 bg-gray-700/30 rounded-lg">
-            <div className="w-8 h-8 bg-whive/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-              <span className="text-whive font-semibold text-sm">1</span>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-1">Download Whive</h4>
-              <p className="text-sm text-gray-400 mb-2">
-                Download the latest Whive 22.2.3 for your operating system
-              </p>
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <HardDrive className="w-3 h-3" />
-                <span>~50GB disk space required</span>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                    Mining Intensity ({intensity}%)
+                  </label>
+                  <input
+                    type="range"
+                    min="50"
+                    max="100"
+                    value={intensity}
+                    onChange={(e) => setIntensity(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <div className="flex justify-between text-xs text-slate-400 mt-1">
+                    <span>50%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-start space-x-4 p-4 bg-gray-700/30 rounded-lg">
-            <div className="w-8 h-8 bg-gray-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-              <span className="text-gray-500 font-semibold text-sm">2</span>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-1">Configure Mining</h4>
-              <p className="text-sm text-gray-400 mb-2">
-                Set up mining pool, wallet address, and CPU optimization
-              </p>
-              <div className="flex items-center space-x-2 text-xs text-gray-500">
-                <Clock className="w-3 h-3" />
-                <span>Initial sync takes 2-6 hours</span>
+            {/* Mining Information */}
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-700/30 rounded-lg space-y-3">
+                <h3 className="text-lg font-semibold text-white">Yespower Algorithm</h3>
+                <div className="space-y-2 text-sm text-slate-300">
+                  <div className="flex items-center justify-between">
+                    <span>Algorithm:</span>
+                    <span className="text-purple-400 font-mono">Yespower 1.0</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Block Time:</span>
+                    <span className="text-white">2.5 minutes</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>CPU Optimized:</span>
+                    <span className="text-green-400">Yes</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>ASIC Resistant:</span>
+                    <span className="text-green-400">Yes</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-700/30 rounded-lg">
+                <h4 className="font-semibold text-white mb-2">Performance Tips</h4>
+                <ul className="text-sm text-slate-300 space-y-1">
+                  <li>• Use 50-75% of available CPU cores</li>
+                  <li>• Monitor CPU temperature (keep under 80°C)</li>
+                  <li>• Close unnecessary applications</li>
+                  <li>• Ensure adequate system cooling</li>
+                </ul>
               </div>
             </div>
           </div>
 
-          <div className="flex items-start space-x-4 p-4 bg-gray-700/30 rounded-lg">
-            <div className="w-8 h-8 bg-gray-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-              <span className="text-gray-500 font-semibold text-sm">3</span>
-            </div>
-            <div>
-              <h4 className="font-semibold text-white mb-1">Start Mining</h4>
-              <p className="text-sm text-gray-400">
-                Begin CPU mining with optimized Yespower algorithm
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+          {/* Mining Controls */}
+          <div className="mt-6 flex justify-center space-x-4">
+            {/* Simple Test Button - Like Python Script */}
+            <button
+              onClick={async () => {
+                if (!whiveAddress.trim()) {
+                  addNotification('error', 'Missing Address', 'Please enter a Whive address.');
+                  return;
+                }
+                try {
+                  const result = await TauriService.startSimpleWhiveMining(whiveAddress.trim(), threads);
+                  addNotification('success', 'Mining Started in Terminal', result);
+                } catch (error) {
+                  addNotification('error', 'Mining Failed', error as string);
+                }
+              }}
+              disabled={!whiveAddress}
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            >
+              <Play className="w-5 h-5" />
+              <span>🧪 Test Simple Mining (Terminal)</span>
+            </button>
 
-      {/* Mining Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-          <div className="text-2xl font-bold text-white mb-1">
-            {miningStats ? `${miningStats.hashrate.toFixed(1)}` : '0'}
+            {/* Original Button */}
+            {!isMining ? (
+              <button
+                onClick={handleStartMining}
+                disabled={isStarting || !whiveAddress}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-3 px-8 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              >
+                <Play className="w-5 h-5" />
+                <span>{isStarting ? 'Starting Mining...' : 'Start Whive Mining'}</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleStopMining}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-3 px-8 rounded-lg transition-all duration-200 flex items-center space-x-2"
+              >
+                <Square className="w-5 h-5" />
+                <span>Stop Mining</span>
+              </button>
+            )}
           </div>
-          <div className="text-sm text-gray-400">H/s</div>
         </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-          <div className="text-2xl font-bold text-white mb-1">
-            {miningStats ? miningStats.accepted_shares : '0'}
+
+        {/* Mining Statistics */}
+        {miningStats && (
+          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50">
+            <div className="flex items-center space-x-3 mb-4">
+              <Activity className="w-5 h-5 text-purple-400" />
+              <h2 className="text-xl font-semibold text-white">Mining Statistics</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Cpu className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm text-slate-300">Hashrate</span>
+                </div>
+                <span className="text-2xl font-bold text-white">{miningStats.hashrate.toFixed(2)} H/s</span>
+              </div>
+              
+              <div className="p-4 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Activity className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-slate-300">Accepted Shares</span>
+                </div>
+                <span className="text-2xl font-bold text-white">{miningStats.accepted_shares}</span>
+              </div>
+              
+              <div className="p-4 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <HardDrive className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm text-slate-300">Temperature</span>
+                </div>
+                <span className="text-2xl font-bold text-white">{miningStats.temperature.toFixed(1)}°C</span>
+              </div>
+              
+              <div className="p-4 bg-slate-700/30 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Zap className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm text-slate-300">Power Usage</span>
+                </div>
+                <span className="text-2xl font-bold text-white">{miningStats.power_consumption.toFixed(1)}W</span>
+              </div>
+            </div>
           </div>
-          <div className="text-sm text-gray-400">Shares</div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-          <div className="text-2xl font-bold text-white mb-1">0.00</div>
-          <div className="text-sm text-gray-400">WHIVE Balance</div>
-        </div>
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 text-center">
-          <div className="text-2xl font-bold text-white mb-1">0</div>
-          <div className="text-sm text-gray-400">Blocks Found</div>
-        </div>
+        )}
+
+        {/* Mining Risk Warning Modal */}
+        <MiningRiskWarning
+          isOpen={showRiskWarning}
+          miningType="whive"
+          onAccept={handleAcceptRisks}
+          onDecline={handleDeclineRisks}
+        />
       </div>
     </div>
   );
