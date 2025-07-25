@@ -11,7 +11,7 @@
 
 ### ⛏️ **Professional Mining Operations**
 - **Bitcoin Mining**: SHA-256 algorithm with multiple pool support (CKPool, F2Pool, Ocean, etc.)
-- **Whive Mining**: Optimized YescryptR32 CPU mining with thread control
+- **Whive Mining**: Optimized Yespower CPU mining with thread control
 - **Address Validation**: Real-time Bitcoin and Whive address validation
 - **Pool Management**: Intelligent pool selection with failover capabilities
 - **Performance Monitoring**: Real-time statistics and system monitoring
@@ -103,7 +103,7 @@ npm run tauri:build
 1. **Enter** your Whive address (automatic validation)
 2. **Adjust** CPU threads for optimal performance
 3. **Set** mining intensity (recommended: 80-90%)
-4. **Begin** CPU-optimized YescryptR32 mining
+4. **Begin** CPU-optimized Yespower mining
 
 ## 🚦 Project Status
 
