@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TauriService } from '../services/tauri';
 import { useNotifications } from '../hooks/useNotifications';
-import { Play, Square, Download, Activity, Zap, Settings, Monitor, HardDrive, Cpu } from 'lucide-react';
+import { Play, Square, Download, Activity, Zap, Monitor, HardDrive, Cpu } from 'lucide-react';
 import MiningRiskWarning from '../components/Common/MiningRiskWarning';
 
 const BitcoinPage: React.FC = () => {

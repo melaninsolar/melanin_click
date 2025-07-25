@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Download, CheckCircle, AlertTriangle, Cpu, HardDrive, Wifi, Shield, Info } from 'lucide-react';
+import { Download, CheckCircle, AlertTriangle, Cpu, HardDrive, Shield, Info } from 'lucide-react';
 import { TauriService } from '../services/tauri';
 import { useNotifications } from '../hooks/useNotifications';
 
