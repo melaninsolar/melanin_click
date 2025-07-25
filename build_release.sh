@@ -159,7 +159,7 @@ This is the first major release of Melanin Click, featuring a complete Tauri-bas
 
 ### ⛏️ Mining Operations
 - **Bitcoin Mining**: SHA-256 algorithm with CKPool connectivity
-- **Whive Mining**: YescryptR32 CPU mining optimized for performance
+- **Whive Mining**: Yespower CPU mining optimized for performance
 - **Pool Support**: Multiple mining pools with failover capabilities
 - **Address Validation**: Real-time Bitcoin and Whive address validation
 
