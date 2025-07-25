@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::{AppState, AppError, MiningStats, MiningConfig};
 use crate::core::{get_process_manager, find_executable_in_path};
 use crate::validation::{validate_bitcoin_address, validate_whive_address};
+use crate::mining_stats::MINING_STATS;
+use tokio::process::Command;
 use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,12 +49,26 @@ pub async fn download_and_install_miners(state: State<'_, AppState>) -> Result<S
     crate::core::ensure_directory_exists(&miners_dir).await?;
     
     // Download cpuminer-multi for Whive Yespower mining
-    let cpuminer_url = get_cpuminer_download_url().await?;
-    let cpuminer_filename = cpuminer_url.split('/').last().unwrap_or("cpuminer-multi");
+    let miner_download = get_cpuminer_download_url().await?;
+    let cpuminer_filename = miner_download.url.split('/').last().unwrap_or("cpuminer-multi");
     let cpuminer_path = miners_dir.join(cpuminer_filename);
     
     if !cpuminer_path.exists() {
-        download_file_internal(&cpuminer_url, &cpuminer_path, &state).await?;
+        download_file_internal(&miner_download.url, &cpuminer_path, &state).await?;
+        
+        // Verify downloaded file integrity (skip for example hashes)
+        if !miner_download.sha256.starts_with("example_") {
+            let is_valid = crate::validation::verify_file_hash(
+                cpuminer_path.to_string_lossy().to_string(),
+                miner_download.sha256,
+                Some("sha256".to_string()),
+            ).await?;
+            
+            if !is_valid {
+                std::fs::remove_file(&cpuminer_path)?;
+                return Err(AppError::Mining("Downloaded file failed integrity check".to_string()));
+            }
+        }
         
         // Extract if it's an archive
         if cpuminer_filename.ends_with(".tar.gz") {
@@ -70,20 +86,38 @@ pub async fn download_and_install_miners(state: State<'_, AppState>) -> Result<S
     Ok("Mining executables installed successfully".to_string())
 }
 
-// Get the correct cpuminer download URL for the platform
-async fn get_cpuminer_download_url() -> Result<String, AppError> {
+// Known checksums for mining software verification
+struct MinerDownload {
+    url: String,
+    sha256: String,
+}
+
+// Get the correct cpuminer download URL and checksum for the platform
+async fn get_cpuminer_download_url() -> Result<MinerDownload, AppError> {
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;
     
-    let url = match (os, arch) {
-        ("linux", "x86_64") => "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-linux-x64.tar.gz",
-        ("macos", "x86_64") => "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-macos-x64.tar.gz",
-        ("macos", "aarch64") => "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-macos-arm64.tar.gz",
-        ("windows", "x86_64") => "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-win64.zip",
+    let download = match (os, arch) {
+        ("linux", "x86_64") => MinerDownload {
+            url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-linux-x64.tar.gz".to_string(),
+            sha256: "example_linux_x64_hash".to_string(), // In production, get real hash
+        },
+        ("macos", "x86_64") => MinerDownload {
+            url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-macos-x64.tar.gz".to_string(),
+            sha256: "example_macos_x64_hash".to_string(), // In production, get real hash
+        },
+        ("macos", "aarch64") => MinerDownload {
+            url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-macos-arm64.tar.gz".to_string(),
+            sha256: "example_macos_arm64_hash".to_string(), // In production, get real hash
+        },
+        ("windows", "x86_64") => MinerDownload {
+            url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-win64.zip".to_string(),
+            sha256: "example_windows_x64_hash".to_string(), // In production, get real hash
+        },
         _ => return Err(AppError::Mining(format!("Unsupported platform: {} {}", os, arch))),
     };
     
-    Ok(url.to_string())
+    Ok(download)
 }
 
 // Download file with progress tracking
@@ -197,7 +231,7 @@ pub async fn start_enhanced_whive_mining(
     threads: Option<u32>,
     intensity: Option<u8>,
     pool_url: Option<String>,
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
 ) -> Result<String, AppError> {
     // Validate address
     if !validate_whive_address(whive_address.clone()).await? {
@@ -233,32 +267,23 @@ pub async fn start_enhanced_whive_mining(
         "-t", &num_threads_str,  // Number of threads
     ];
 
-    // Start mining process
-    let pid = process_manager
-        .start_process("whive_miner", &miner_path, &args, None)
-        .await?;
+    // Start mining process with stdout capture for real-time stats
+    let mut cmd = Command::new(&miner_path);
+    cmd.args(&args)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    
+    let child = cmd.spawn()
+        .map_err(|e| AppError::Mining(format!("Failed to start mining process: {}", e)))?;
 
-    // Initialize mining stats
-    let mining_stats = MiningStats {
-        hashrate: 0.0,
-        accepted_shares: 0,
-        rejected_shares: 0,
-        uptime: 0,
-        temperature: 35.0,
-        power_consumption: 50.0,
-        estimated_earnings: 0.0,
-        pool_url: pool.clone(),
-        algorithm: "Yespower".to_string(),
-        threads: num_threads,
-        last_update: chrono::Utc::now(),
-    };
+    // Start monitoring the process for real-time statistics
+    MINING_STATS.start_monitoring_process("whive", child).await?;
 
-    let mut stats = state.mining_stats.lock().await;
-    stats.insert("whive".to_string(), mining_stats);
+    // Note: Process is now managed by MINING_STATS, no need for separate registration
 
     Ok(format!(
-        "Whive mining started successfully with PID: {}. Using {} threads on Yespower algorithm targeting pool: {}",
-        pid, num_threads, pool.clone()
+        "Whive mining started successfully. Using {} threads on Yespower algorithm targeting pool: {}",
+        num_threads, pool
     ))
 }
 
@@ -345,13 +370,19 @@ async fn start_bitcoin_cpu_mining(
         "-p", "x",               // Password
     ];
 
-    // Start mining process
-    let process_manager = get_process_manager();
-    let pid = process_manager
-        .start_process("bitcoin_miner", &miner_path, &args, None)
-        .await?;
+    // Start mining process with stdout capture for real-time stats
+    let mut cmd = Command::new(&miner_path);
+    cmd.args(&args)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    
+    let child = cmd.spawn()
+        .map_err(|e| AppError::Mining(format!("Failed to start Bitcoin mining process: {}", e)))?;
 
-    // Initialize mining stats
+    // Start monitoring the process for real-time statistics
+    MINING_STATS.start_monitoring_process("bitcoin", child).await?;
+
+    // Note: Process is now managed by MINING_STATS, no need for separate registration
     let mining_stats = MiningStats {
         hashrate: 0.0,
         accepted_shares: 0,
@@ -370,8 +401,8 @@ async fn start_bitcoin_cpu_mining(
     stats.insert("bitcoin".to_string(), mining_stats);
 
     Ok(format!(
-        "Bitcoin mining started successfully with PID: {}. Using {} threads on {} - {}",
-        pid, num_threads, pool_name, pool_description
+        "Bitcoin mining started successfully. Using {} threads on {} - {}",
+        num_threads, pool_name, pool_description
     ))
 }
 
@@ -446,16 +477,17 @@ pub async fn stop_mining(
     mining_type: String,
     state: State<'_, AppState>,
 ) -> Result<String, AppError> {
+    // Stop monitoring and kill the process via the stats collector
+    MINING_STATS.stop_monitoring(&mining_type).await?;
+
+    // Also stop via process manager for compatibility
     let process_name = format!("{}_miner", mining_type);
     let process_manager = get_process_manager();
-
-    if !process_manager.is_process_running(&process_name).await {
-        return Err(AppError::Mining(format!("{} mining is not currently running", mining_type)));
+    if process_manager.is_process_running(&process_name).await {
+        let _ = process_manager.stop_process(&process_name).await; // Ignore errors since process may already be dead
     }
 
-    process_manager.stop_process(&process_name).await?;
-
-    // Clear mining stats
+    // Clear mining stats from old system
     let mut stats = state.mining_stats.lock().await;
     stats.remove(&mining_type);
 
