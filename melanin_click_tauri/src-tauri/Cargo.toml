@@ -61,4 +61,5 @@ num_cpus = "1.0"
 md5 = "0.7"
 hex = "0.4"
 which = "8.0.0"
+lazy_static = "1.4"
 
