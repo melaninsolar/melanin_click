@@ -1,52 +1,178 @@
-## Melanin Click: Your All-In-One Wallet, Node & Miner Installer
+# 🚀 Melanin Click - Advanced Cryptocurrency Mining Platform
 
-Welcome to Melanin Click (Developer Build) - the quintessential tool for setting up your node & miner for Whive & Bitcoin. This user-friendly executable is designed to automate the process of downloading, installing, and initiating Whive, Bitcoin, and Lightning software, eliminating the complexities of manual setup and configuration.
+[![Tauri](https://img.shields.io/badge/Tauri-2.0-blue)](https://tauri.app)
+[![Rust](https://img.shields.io/badge/Rust-1.70+-orange)](https://rust-lang.org)
+[![React](https://img.shields.io/badge/React-18+-blue)](https://reactjs.org)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-Primarily available as an executable for Mac, Windows, and Linux, Melanin Click provides a robust and seamless experience across platforms.
+> **Professional all-in-one cryptocurrency mining platform** supporting Bitcoin (SHA-256) and Whive (Yespower) mining across desktop platforms with modern Tauri architecture.
 
-# Key Features
-- Easy Installation: Run Whive, Bitcoin, and Lightning effortlessly with a single click.
-- Automatic Updates: Ensures your crypto software is always up-to-date.
-- Enhanced Error Handling: Comprehensive logging and robust error handling for seamless troubleshooting.
-- Performance Monitoring: Provides real-time feedback on your Whive mining performance.
-- Interactive User Interface: User-friendly GUI designed for users of all skill levels.
-- Localization: Supports multiple languages for global user accessibility.
+## 🎯 Features
 
-# How to Use
-To get started, download the executable for your respective operating system from the links below:
+### ⛏️ **Professional Mining Operations**
+- **Bitcoin Mining**: SHA-256 algorithm with multiple pool support (CKPool, F2Pool, Ocean, etc.)
+- **Whive Mining**: Optimized Yespower CPU mining with thread control
+- **Address Validation**: Real-time Bitcoin and Whive address validation
+- **Pool Management**: Intelligent pool selection with failover capabilities
+- **Performance Monitoring**: Real-time statistics and system monitoring
 
-- Melanin Click for Mac
-- Melanin Click for Windows
-- Melanin Click for Linux
+### 🖥️ **Cross-Platform Desktop Support**
+- **Windows**: Native `.exe` installer with MSI support
+- **macOS**: Universal binary `.dmg` (Intel & Apple Silicon)
+- **Linux**: `.deb` packages and AppImage support
 
-Alternatively, you can also download the source script from our GitHub Repository and run it manually:
+### 🔧 **Node Management**
+- **One-Click Installation**: Automated Bitcoin Core and Whive node setup
+- **Smart Configuration**: Optimized configs for mainnet and pruned modes
+- **Status Monitoring**: Real-time synchronization and health monitoring
 
-### Running the script
+### 🎨 **Modern Interface**
+- **React-Based UI**: Professional dark theme with responsive design
+- **Real-Time Updates**: Live mining statistics and notifications
+- **Guided Setup**: Comprehensive onboarding wizard
+- **System Integration**: Native desktop notifications and controls
+
+## 🚀 Quick Start
+
+### Prerequisites
+- **Node.js** 18+ and npm
+- **Rust** 1.70+ (for development)
+- **Operating System**: Windows 10+, macOS 10.13+, or Linux
+
+### Installation
+
+#### Option 1: Download Release (Recommended)
+1. Visit the [Releases](https://github.com/xyephy/melanin_click/releases) page
+2. Download the installer for your platform:
+   - **Windows**: `melanin-click-windows.exe`
+   - **macOS**: `melanin-click-macos.dmg`
+   - **Linux**: `melanin-click-linux.deb` or `melanin-click-linux.AppImage`
+3. Run the installer and follow the setup wizard
+
+#### Option 2: Build from Source
+```bash
+# Clone the repository
+git clone https://github.com/xyephy/melanin_click.git
+cd melanin_click
+
+# Navigate to Tauri application
+cd melanin_click_tauri
+
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run tauri:dev
+
+# Build for production
+npm run tauri:build
 ```
-$ git clone https://github.com/melaninsolar/melaninclick.git
-$ chmod +x melaninclick.sh
-$ ./melaninclick.sh
+
+### First-Time Setup
+1. **Launch** Melanin Click
+2. **Complete** the onboarding wizard
+3. **Configure** your mining addresses
+4. **Select** your preferred pools
+5. **Start mining** with one click!
+
+## 📖 Documentation
+
+- 📋 **[Project Roadmap](ROADMAP.md)** - Development timeline and milestones
+- 🛠️ **[User Installation Guide](USER_INSTALL_GUIDE.md)** - Platform-specific setup instructions
+- 🏗️ **[Architecture Proposal](tauri_architecture_proposal.md)** - Technical system design
+- 🔑 **[Code Signing Guide](CODE_SIGNING_GUIDE.md)** - Development and distribution setup
+
+## 🏗️ Architecture
+
+**Melanin Click** is built with modern technologies for performance and reliability:
+
+- **🦀 Rust Backend**: High-performance, memory-safe core operations
+- **⚛️ React Frontend**: Modern, responsive user interface
+- **🖥️ Tauri Framework**: Native desktop integration with web technologies
+- **🔗 Native Mining**: Direct algorithm implementations for optimal performance
+
+## 🎮 Mining Guide
+
+### Bitcoin Mining
+1. **Enter** your Bitcoin address (validated in real-time)
+2. **Select** mining pool (CKPool Solo, F2Pool, Ocean, etc.)
+3. **Configure** worker name and thread count
+4. **Start** mining with enhanced Stratum connectivity
+
+### Whive Mining  
+1. **Enter** your Whive address (automatic validation)
+2. **Adjust** CPU threads for optimal performance
+3. **Set** mining intensity (recommended: 80-90%)
+4. **Begin** CPU-optimized Yespower mining
+
+## 🚦 Project Status
+
+### ✅ Sprint 1 (COMPLETE) - Desktop Foundation
+- [x] Cross-platform desktop application
+- [x] Bitcoin and Whive pool mining
+- [x] Professional UI with real-time statistics  
+- [x] Address validation and error handling
+- [x] Native installers for all platforms
+
+### 🔄 Sprint 2 (August 2025) - Mobile & Solo Mining
+- [ ] Android mobile application
+- [ ] Solo mining capabilities
+- [ ] Enhanced mining statistics
+- [ ] External alpha testing program
+
+### 🔮 Sprint 3 (September 2025) - AI Network & Hardware
+- [ ] Melanin Network AI-powered mining pool
+- [ ] MSBX hardware integration
+- [ ] Complete ecosystem deployment
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for:
+- Development environment setup
+- Code style guidelines  
+- Pull request process
+- Issue reporting
+
+### Development Commands
+```bash
+# Development mode
+npm run tauri:dev
+
+# Production build
+npm run tauri:build
+
+# Release build script
+npm run release
+
+# Lint and format
+npm run lint
+npm run format
 ```
-Melanin Click is a powerful tool for both newcomers looking to delve into the world of cryptocurrencies and seasoned miners seeking to streamline their setup process. Your feedback and suggestions are invaluable to us; feel free to raise an issue or submit a pull request.
 
-Get started with cryptocurrency with just one click using Melanin Click!
+## 🔒 Security
 
-Disclaimer: Please ensure you have read and agreed to the terms and conditions of each software before running this installation script. The software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
+- **Address Validation**: Prevents mining to invalid addresses
+- **File Verification**: SHA-256 checksums for all downloads
+- **Secure Configuration**: Industry best practices for node setup
+- **Privacy**: No telemetry or data collection
 
-## TODO
-- [x] Whive binary download for both MacOS & linux
-- [x] Miner Download for macOS/Linux
-- [x] Add dependencies for macOS/Linux
-- [x] Add user alert/warning ⚠️ on dependency's installation 
-- [x] Add miner install notification/alert
-- [x] Add whive desktop shortcut for macOS/linux
-- [x] Disk space check
-- [ ] Add guide for script usage
-- [x] macOS cpu miner needs updates for Ventura
-- [x] Add Gui for the script
-- [x] Display Terms & Conditions in a better way with zenity
-- [x] Add Icon to MelaninClick
-- [ ] Add Windows OS support
-- [ ] Target various macOS versions/ processor platforms
-- [ ] add pruned node feature
-- [ ] Update Lightning neutrino with create wallet and new address feature
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## 🌟 Support
+
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/xyephy/melanin_click/issues)
+- **💡 Feature Requests**: [GitHub Discussions](https://github.com/xyephy/melanin_click/discussions)
+- **📚 Documentation**: See included guides and documentation
+- **🏃‍♂️ Community**: Join our mining community channels
+
+---
+
+### 🏷️ Legacy Python Implementation
+
+The original Python implementation is preserved in the [`alpha`](https://github.com/xyephy/melanin_click/tree/alpha) branch for reference and compatibility during the transition period.
+
+---
+
+**Built with ❤️ by the Melanin Click Team** | **Transform Your Mining Experience** 🚀

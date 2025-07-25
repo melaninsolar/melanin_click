@@ -1,0 +1,64 @@
+[package]
+name = "melanin-click"
+version = "2.0.0"
+description = "Melanin Click - Bitcoin & Whive Desktop Client"
+authors = ["Melanin Click Team"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "melanin_click_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2.2", features = [] }
+tauri-plugin-opener = "2.2"
+tauri-plugin-shell = "2.2"
+tauri-plugin-fs = "2.3"
+tauri-plugin-http = "2.4"
+tauri-plugin-process = "2.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.12", features = ["json", "multipart"] }
+tokio = { version = "1.0", features = ["full"] }
+tar = "0.4"
+flate2 = "1.0"
+zip = "2.2"
+futures-util = "0.3"
+dirs = "5.0"
+sysinfo = "0.30"
+
+# Mining dependencies
+blake2 = "0.10"
+scrypt = "0.11"
+ring = "0.17"
+
+# Network and Stratum client
+tokio-tungstenite = "0.21"
+url = "2.5"
+base64 = "0.22"
+uuid = { version = "1.0", features = ["v4"] }
+
+# Address validation
+bs58 = "0.5"
+bech32 = "0.11"
+sha2 = "0.10"
+
+# Performance and monitoring
+chrono = { version = "0.4", features = ["serde"] }
+crossbeam-channel = "0.5"
+
+# Error handling and utilities
+thiserror = "1.0"
+num_cpus = "1.0"
+md5 = "0.7"
+hex = "0.4"
+which = "8.0.0"
+
