@@ -1,29 +1,69 @@
 import { invoke } from '@tauri-apps/api/core';
-import { SystemInfo, CryptoConfig, HardwareInfo, MiningPool, MiningConfig, MiningStats } from '../types';
+
+interface MiningStats {
+  hashrate: number;
+  accepted_shares: number;
+  rejected_shares: number;
+  uptime: number;
+  temperature: number;
+  power_consumption: number;
+  estimated_earnings: number;
+  pool_url: string;
+  algorithm: string;
+  threads: number;
+  last_update: string;
+}
+
+interface SystemInfo {
+  platform: string;
+  architecture: string;
+  total_memory: number;
+  available_memory: number;
+  disk_space: number;
+  available_disk_space: number;
+  cpu_cores: number;
+  cpu_brand: string;
+  cpu_frequency: number;
+}
+
+interface NodeStatus {
+  is_running: boolean;
+  sync_progress: number;
+  block_height: number;
+  peer_count: number;
+  network: string;
+  data_dir: string;
+  config_path: string;
+}
+
+interface MiningPool {
+  name: string;
+  url: string;
+  port: number;
+  fee: number;
+  location: string;
+  algorithm: string;
+  status: 'Active' | 'Inactive' | 'Maintenance' | 'Unknown';
+  latency?: number;
+  description: string;
+}
 
 export class TauriService {
-  // System Information
-  static async getSystemInfo(): Promise<SystemInfo> {
-    return await invoke('get_system_info');
+  // Miner Installation
+  static async downloadAndInstallMiners(): Promise<string> {
+    return await invoke('download_and_install_miners');
   }
 
-  static async getCryptoConfig(): Promise<CryptoConfig> {
-    return await invoke('get_crypto_config');
+  // Simple Mining (like Python script)
+  static async startSimpleWhiveMining(whiveAddress: string, threads?: number): Promise<string> {
+    return await invoke('start_simple_whive_mining', { whiveAddress, threads });
   }
 
-  static async getHardwareInfo(): Promise<HardwareInfo> {
-    return await invoke('get_hardware_info');
+  static async startSimpleBitcoinMining(bitcoinAddress: string, workerName: string): Promise<string> {
+    return await invoke('start_simple_bitcoin_mining', { bitcoinAddress, workerName });
   }
 
-  // Download and Installation
-  static async getBitcoinDownloadUrl(): Promise<string> {
-    return await invoke('get_bitcoin_download_url');
-  }
-
-  static async getWhiveDownloadUrl(): Promise<string> {
-    return await invoke('get_whive_download_url');
-  }
-
+  // Node Management
   static async downloadAndInstallBitcoin(): Promise<string> {
     return await invoke('download_and_install_bitcoin');
   }
@@ -32,77 +72,67 @@ export class TauriService {
     return await invoke('download_and_install_whive');
   }
 
-  static async getDownloadProgress(url: string): Promise<any> {
-    return await invoke('get_download_progress', { url });
+  static async runBitcoinMainnet(useQt: boolean = false): Promise<string> {
+    return await invoke('run_bitcoin_mainnet', { useQt });
   }
 
-  // Node Operations
-  static async runBitcoinMainnet(): Promise<string> {
-    return await invoke('run_bitcoin_mainnet');
+  static async runBitcoinPruned(useQt: boolean = false): Promise<string> {
+    return await invoke('run_bitcoin_pruned', { useQt });
   }
 
-  static async runBitcoinPruned(): Promise<string> {
-    return await invoke('run_bitcoin_pruned');
+  static async runWhiveNode(useQt: boolean = false): Promise<string> {
+    return await invoke('run_whive_node', { useQt });
   }
 
-  static async runWhiveNode(): Promise<string> {
-    return await invoke('run_whive_node');
+  static async stopNode(nodeType: string): Promise<string> {
+    return await invoke('stop_node', { nodeType });
   }
 
-  static async checkBitcoinStatus(): Promise<string> {
-    return await invoke('check_bitcoin_status');
+  static async getNodeStatus(nodeType: string): Promise<NodeStatus> {
+    return await invoke('get_node_status', { nodeType });
   }
 
-  static async checkWhiveStatus(): Promise<string> {
-    return await invoke('check_whive_status');
-  }
-
-  // Mining Operations
-  static async startBitcoinMining(bitcoinAddress: string, workerName: string, poolName: string): Promise<string> {
-    return await invoke('start_bitcoin_mining', { 
-      bitcoin_address: bitcoinAddress, 
-      worker_name: workerName, 
-      pool_name: poolName 
+  // Enhanced Mining Operations
+  static async startEnhancedWhiveMining(
+    whiveAddress: string,
+    threads?: number,
+    intensity?: number,
+    poolUrl?: string
+  ): Promise<string> {
+    return await invoke('start_enhanced_whive_mining', {
+      whiveAddress,
+      threads,
+      intensity,
+      poolUrl,
     });
   }
 
-  static async startWhiveMining(whiveAddress: string): Promise<string> {
-    return await invoke('start_whive_mining', { whive_address: whiveAddress });
-  }
-
-  // Enhanced Mining Operations with Address Validation
   static async startEnhancedBitcoinMining(
     bitcoinAddress: string,
     workerName: string,
     poolName: string,
     threads?: number,
-    miningMode?: 'cpu' | 'stick'
+    miningMode?: string
   ): Promise<string> {
-    return await invoke('start_enhanced_bitcoin_mining', { bitcoinAddress, workerName, poolName, threads, miningMode });
-  }
-
-  static async startEnhancedWhiveMining(
-    whiveAddress: string, 
-    threads?: number, 
-    intensity?: number
-  ): Promise<string> {
-    return await invoke('start_enhanced_whive_mining', { 
-      whive_address: whiveAddress, 
+    return await invoke('start_enhanced_bitcoin_mining', {
+      bitcoinAddress,
+      workerName,
+      poolName,
       threads,
-      intensity 
+      miningMode,
     });
   }
 
-  static async stopMining(): Promise<string> {
-    return await invoke('stop_mining');
+  static async stopMining(miningType?: string): Promise<string> {
+    return await invoke('stop_mining', { miningType: miningType || 'bitcoin' });
   }
 
-  static async getMiningStats(): Promise<MiningStats> {
-    return await invoke('get_mining_stats');
+  static async getMiningStatus(miningType: string): Promise<MiningStats | null> {
+    return await invoke('get_mining_status', { miningType });
   }
 
-  static async getRealMiningStats(miningType: string): Promise<MiningStats> {
-    return await invoke('get_real_mining_stats', { mining_type: miningType });
+  static async getMiningPools(): Promise<MiningPool[]> {
+    return await invoke('get_mining_pools');
   }
 
   // Address Validation
@@ -114,49 +144,46 @@ export class TauriService {
     return await invoke('validate_whive_address', { address });
   }
 
-  // Pool Management
-  static async getMiningPools(): Promise<MiningPool[]> {
-    return await invoke('get_mining_pools');
+  // System Information
+  static async getSystemInfo(): Promise<SystemInfo> {
+    return await invoke('get_system_info');
   }
 
-  static async saveMiningConfig(config: MiningConfig): Promise<string> {
-    return await invoke('save_mining_config', { config });
+  static async getRealMiningStats(miningType: string): Promise<MiningStats> {
+    return await invoke('get_real_mining_stats', { miningType });
   }
 
-  static async loadMiningConfig(): Promise<MiningConfig | null> {
-    return await invoke('load_mining_config');
+  static async getHardwareInfo(): Promise<any> {
+    return await invoke('get_hardware_info');
   }
 
-  // Utility Functions
-  static async executeCommand(command: string, args: string[], workingDir?: string): Promise<string> {
-    return await invoke('execute_command', { command, args, working_dir: workingDir });
+  // Legacy compatibility methods
+  static async checkBitcoinStatus(): Promise<string> {
+    const status = await this.getNodeStatus('bitcoin_mainnet');
+    return JSON.stringify({
+      running: status.is_running,
+      blocks: status.block_height,
+      peers: status.peer_count,
+      sync_progress: status.sync_progress,
+    });
   }
 
-  static async startProcess(command: string, args: string[], workingDir?: string): Promise<number> {
-    return await invoke('start_process', { command, args, working_dir: workingDir });
+  static async checkWhiveStatus(): Promise<string> {
+    const status = await this.getNodeStatus('whive_node');
+    return JSON.stringify({
+      running: status.is_running,
+      blocks: status.block_height,
+      peers: status.peer_count,
+      sync_progress: status.sync_progress,
+    });
   }
 
-  static async stopProcess(processName: string): Promise<string> {
-    return await invoke('stop_process', { process_name: processName });
-  }
-
-  static async verifyFileHash(filePath: string, expectedHash: string): Promise<boolean> {
-    return await invoke('verify_file_hash', { file_path: filePath, expected_hash: expectedHash });
-  }
-
-  static async createDirectory(path: string): Promise<string> {
-    return await invoke('create_directory', { path });
-  }
-
+  // File utilities
   static async checkFileExists(path: string): Promise<boolean> {
     return await invoke('check_file_exists', { path });
   }
 
-  static async getFileSize(path: string): Promise<number> {
-    return await invoke('get_file_size', { path });
-  }
-
-  static async benchmarkHardware(): Promise<Record<string, number>> {
-    return await invoke('benchmark_hardware');
+  static async getDownloadProgress(url: string): Promise<any> {
+    return await invoke('get_download_progress', { url });
   }
 } 
