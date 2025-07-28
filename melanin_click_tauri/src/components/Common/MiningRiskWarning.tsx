@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, X, Check, ExternalLink, Thermometer, Zap, DollarSign, Shield } from 'lucide-react';
+import { AlertTriangle, X, Check, Thermometer, DollarSign, Shield } from 'lucide-react';
 
 interface MiningRiskWarningProps {
   onAccept: () => void;

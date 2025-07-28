@@ -3,19 +3,44 @@ use sysinfo::System;
 use tauri::State;
 use crate::{AppState, AppError, MiningStats, SystemInfo, GpuDevice};
 use crate::core::get_process_manager;
+use crate::mining_stats::MINING_STATS;
 
 // Get Real-time Mining Statistics
 #[tauri::command]
 pub async fn get_real_mining_stats(
     mining_type: String,
-    state: State<'_, AppState>,
+    _state: State<'_, AppState>,
 ) -> Result<MiningStats, AppError> {
-    let process_manager = get_process_manager();
-    let process_name = format!("{}_miner", mining_type);
-    
-    // Check if mining process is running
-    if !process_manager.is_process_running(&process_name).await {
-        return Ok(MiningStats {
+    // Get real stats from the mining stats collector
+    if let Some(real_stats) = MINING_STATS.get_stats(&mining_type).await {
+        // Update temperature and earnings calculation
+        MINING_STATS.update_temperature(&mining_type, get_cpu_temperature().await.unwrap_or(35.0)).await;
+        MINING_STATS.calculate_earnings(&mining_type).await;
+        
+        // Get updated stats
+        let updated_stats = MINING_STATS.get_stats(&mining_type).await.unwrap_or(real_stats.clone());
+        
+        // Convert to the UI MiningStats format
+        Ok(MiningStats {
+            hashrate: updated_stats.hashrate,
+            accepted_shares: updated_stats.accepted_shares as u64,
+            rejected_shares: updated_stats.rejected_shares as u64,
+            uptime: updated_stats.uptime,
+            temperature: updated_stats.temperature,
+            power_consumption: updated_stats.power_consumption,
+            estimated_earnings: updated_stats.estimated_earnings,
+            pool_url: "Mining pool".to_string(), // Real pool info would come from config
+            algorithm: match mining_type.as_str() {
+                "whive" => "Yespower".to_string(),
+                "bitcoin" => "SHA-256d".to_string(),
+                _ => mining_type.clone(),
+            },
+            threads: 2, // This should come from config
+            last_update: chrono::Utc::now(),
+        })
+    } else {
+        // No mining process running
+        Ok(MiningStats {
             hashrate: 0.0,
             accepted_shares: 0,
             rejected_shares: 0,
@@ -27,25 +52,7 @@ pub async fn get_real_mining_stats(
             algorithm: mining_type.clone(),
             threads: 0,
             last_update: chrono::Utc::now(),
-        });
-    }
-
-    // Get stored stats and update with real system data
-    let mut stats_guard = state.mining_stats.lock().await;
-    if let Some(mut stats) = stats_guard.get(&mining_type).cloned() {
-        // Update with real-time system data
-        stats.temperature = get_cpu_temperature().await.unwrap_or(stats.temperature);
-        stats.power_consumption = calculate_mining_power_consumption(&mining_type, stats.threads).await;
-        stats.uptime = get_mining_uptime(&process_name).await.unwrap_or(stats.uptime);
-        stats.hashrate = estimate_hashrate(&mining_type, stats.threads).await;
-        stats.last_update = chrono::Utc::now();
-        
-        // Update stored stats
-        stats_guard.insert(mining_type, stats.clone());
-        
-        Ok(stats)
-    } else {
-        Err(AppError::Mining(format!("No mining session found for {}", mining_type)))
+        })
     }
 }
 

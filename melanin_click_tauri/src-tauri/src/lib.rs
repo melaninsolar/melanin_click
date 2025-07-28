@@ -122,6 +122,7 @@ pub struct NodeStatus {
 // Declare modules
 pub mod core;
 pub mod mining;
+pub mod mining_stats;
 pub mod node;
 pub mod monitoring;
 pub mod validation;
