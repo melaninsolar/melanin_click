@@ -10,7 +10,7 @@ pub async fn download_and_install_bitcoin(state: State<'_, AppState>) -> Result<
     let home_dir = dirs::home_dir()
         .ok_or_else(|| AppError::Node("Could not find home directory".to_string()))?;
     let install_path = home_dir.join("bitcoin-core");
-    let filename = url.split('/').last().unwrap_or("bitcoin.tar.gz");
+    let filename = url.split('/').next_back().unwrap_or("bitcoin.tar.gz");
     let downloaded_file = install_path.join(filename);
 
     ensure_directory_exists(&install_path).await?;
@@ -45,7 +45,7 @@ pub async fn download_and_install_whive(state: State<'_, AppState>) -> Result<St
     let home_dir = dirs::home_dir()
         .ok_or_else(|| AppError::Node("Could not find home directory".to_string()))?;
     let install_path = home_dir.join("whive-core");
-    let filename = url.split('/').last().unwrap_or("whive.tar.gz");
+    let filename = url.split('/').next_back().unwrap_or("whive.tar.gz");
     let downloaded_file = install_path.join(filename);
 
     ensure_directory_exists(&install_path).await?;

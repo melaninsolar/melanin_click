@@ -70,8 +70,7 @@ impl ProcessManager {
         // Check if process is already running
         if self.is_process_running(name).await {
             return Err(AppError::Process(format!(
-                "Process '{}' is already running",
-                name
+                "Process '{name}' is already running"
             )));
         }
 
@@ -89,7 +88,7 @@ impl ProcessManager {
 
         let child = cmd
             .spawn()
-            .map_err(|e| AppError::Process(format!("Failed to start {}: {}", name, e)))?;
+            .map_err(|e| AppError::Process(format!("Failed to start {name}: {e}")))?;
 
         let pid = child.id().unwrap_or(0);
 
@@ -170,7 +169,7 @@ impl ProcessManager {
                 process_info.status = ProcessStatus::Stopped;
                 info!("Process {} stopped successfully", name);
             } else if !child_removed {
-                return Err(AppError::Process(format!("Process '{}' not found", name)));
+                return Err(AppError::Process(format!("Process '{name}' not found")));
             }
         }
 

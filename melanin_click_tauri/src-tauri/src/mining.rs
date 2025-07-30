@@ -53,7 +53,7 @@ pub async fn download_and_install_miners(state: State<'_, AppState>) -> Result<S
     let cpuminer_filename = miner_download
         .url
         .split('/')
-        .last()
+        .next_back()
         .unwrap_or("cpuminer-multi");
     let cpuminer_path = miners_dir.join(cpuminer_filename);
 
@@ -155,7 +155,7 @@ async fn download_file_internal(
         .map_err(|e| AppError::Mining(format!("Failed to read response bytes: {}", e)))?;
 
     // Track download progress
-    let download_id = url.split('/').last().unwrap_or("download").to_string();
+    let download_id = url.split('/').next_back().unwrap_or("download").to_string();
     {
         let mut downloads = state.downloads.lock().await;
         downloads.insert(

@@ -12,7 +12,7 @@ pub fn init_logging() -> Result<(), AppError> {
     let log_path = PathBuf::from(&config.log_file_path);
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)
-            .map_err(|e| AppError::Config(format!("Failed to create log directory: {}", e)))?;
+            .map_err(|e| AppError::Config(format!("Failed to create log directory: {e}")))?;
     }
 
     // Configure log level based on environment
@@ -87,14 +87,14 @@ pub async fn rotate_logs_if_needed() -> Result<(), AppError> {
     }
 
     let metadata = fs::metadata(&log_path)
-        .map_err(|e| AppError::Config(format!("Failed to get log file metadata: {}", e)))?;
+        .map_err(|e| AppError::Config(format!("Failed to get log file metadata: {e}")))?;
 
     let file_size_mb = metadata.len() / (1024 * 1024);
 
     if file_size_mb > config.max_log_size_mb {
         let backup_path = log_path.with_extension("log.old");
         fs::rename(&log_path, &backup_path)
-            .map_err(|e| AppError::Config(format!("Failed to rotate log file: {}", e)))?;
+            .map_err(|e| AppError::Config(format!("Failed to rotate log file: {e}")))?;
 
         tracing::info!("Log file rotated - old file moved to {:?}", backup_path);
     }

@@ -35,7 +35,7 @@ impl AppConfig {
             if env_file.exists() {
                 match dotenv::from_path(&env_file) {
                     Ok(_) => println!("Loaded environment from .env file"),
-                    Err(e) => println!("Warning: Could not load .env file: {}", e),
+                    Err(e) => println!("Warning: Could not load .env file: {e}"),
                 }
             }
         }
