@@ -77,10 +77,16 @@ npm run tauri:build
 
 ## 📖 Documentation
 
-- 📋 **[Project Roadmap](ROADMAP.md)** - Development timeline and milestones
-- 🛠️ **[User Installation Guide](USER_INSTALL_GUIDE.md)** - Platform-specific setup instructions
-- 🏗️ **[Architecture Proposal](tauri_architecture_proposal.md)** - Technical system design
-- 🔑 **[Code Signing Guide](CODE_SIGNING_GUIDE.md)** - Development and distribution setup
+### Quick Access
+- 🚀 **[Quick Start Guide](STARTUP_GUIDE.md)** - Get running in 5 minutes
+- 📋 **[Installation Guide](INSTALL.md)** - Platform-specific setup instructions  
+- 📊 **[Development Roadmap](TODO.md)** - Sprint-based development plan
+
+### Technical Documentation
+- 🏗️ **[Architecture Proposal](docs/tauri_architecture_proposal.md)** - Technical system design
+- 🔑 **[Code Signing Guide](docs/CODE_SIGNING_GUIDE.md)** - Development and distribution setup
+- 🛣️ **[Project Roadmap](docs/ROADMAP.md)** - Development timeline and milestones
+- 🤝 **[Contributing Guide](docs/CONTRIBUTING.md)** - Development guidelines
 
 ## 🏗️ Architecture
 
@@ -90,6 +96,80 @@ npm run tauri:build
 - **⚛️ React Frontend**: Modern, responsive user interface
 - **🖥️ Tauri Framework**: Native desktop integration with web technologies
 - **🔗 Native Mining**: Direct algorithm implementations for optimal performance
+
+### 📁 System Structure
+
+```
+melanin_click/
+├── 📄 README.md              # Project overview and quick start
+├── 📄 INSTALL.md             # Installation instructions
+├── 📄 TODO.md                # Development roadmap & sprint planning
+├── 📄 STARTUP_GUIDE.md       # Quick startup guide (5 min setup)
+├── 📄 LICENSE                # MIT license
+├── 📄 .env                   # Environment variables (not in git)
+├── 📄 .gitignore            # Git ignore patterns
+├── 📄 build_release.sh      # Build automation script
+│
+├── 📂 docs/                  # Technical documentation
+│   ├── tauri_architecture_proposal.md  # System design
+│   ├── CODE_SIGNING_GUIDE.md           # Code signing & distribution
+│   ├── ROADMAP.md                      # Long-term roadmap
+│   └── CONTRIBUTING.md                 # Development guidelines
+│
+├── 📂 tests/                 # All test files & testing framework
+│   ├── unit/                            # Unit tests
+│   │   └── rust_backend_tests.rs        # Rust backend tests
+│   └── frontend_integration_tests.js    # Frontend integration tests
+│
+├── 📂 melanin_click_tauri/   # Main Tauri application
+│   ├── 📂 src/              # React frontend source
+│   │   ├── components/      # React components
+│   │   ├── pages/          # Application pages
+│   │   ├── hooks/          # Custom React hooks
+│   │   ├── services/       # API services
+│   │   └── types/          # TypeScript definitions
+│   ├── 📂 src-tauri/       # Rust backend source
+│   │   ├── src/           # Rust source files
+│   │   │   ├── main.rs    # Main entry point
+│   │   │   ├── core.rs    # Core system functions
+│   │   │   ├── mining.rs  # Mining operations
+│   │   │   ├── node.rs    # Node management
+│   │   │   └── validation.rs # Address validation
+│   │   ├── Cargo.toml     # Rust dependencies
+│   │   └── tauri.conf.json # Tauri configuration
+│   ├── package.json       # Node.js dependencies
+│   └── vite.config.ts     # Build configuration
+│
+└── 📂 assets/               # Application assets
+    └── icons/              # Application icons
+```
+
+### 🔧 Key Components
+
+**Frontend (React + TypeScript)**
+- Modern responsive UI with dark theme
+- Real-time mining statistics dashboard  
+- Cross-platform desktop interface
+- Form validation and error handling
+
+**Backend (Rust + Tauri)**
+- System information gathering
+- Cryptocurrency address validation
+- Mining process management
+- Node installation and configuration
+- File download and verification
+
+**Testing Framework**
+- Unit tests for Rust backend
+- Integration tests for React frontend
+- Performance and security testing
+- Cross-platform compatibility tests
+
+**Build System**
+- Automated cross-platform builds
+- Code signing for distribution
+- Environment-based configuration
+- Asset optimization and bundling
 
 ## 🎮 Mining Guide
 

@@ -63,3 +63,11 @@ hex = "0.4"
 which = "8.0.0"
 lazy_static = "1.4"
 
+# Configuration and logging
+dotenv = "0.15"
+env_logger = "0.11"
+log = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+
