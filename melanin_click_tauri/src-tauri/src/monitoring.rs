@@ -75,7 +75,7 @@ pub async fn get_system_info(state: State<'_, AppState>) -> Result<SystemInfo, A
     let available_memory = sys.available_memory();
 
     // For now, set disk space to default values - can be enhanced later
-    let disk_space = 1000_000_000_000u64; // 1TB default
+    let disk_space = 1_000_000_000_000_u64; // 1TB default
     let available_disk_space = 500_000_000_000u64; // 500GB default
 
     // CPU information
@@ -187,7 +187,7 @@ async fn get_cpu_temperature() -> Option<f64> {
     {
         // Use system_profiler or similar command
         if let Ok(output) = std::process::Command::new("sysctl")
-            .args(&["-n", "machdep.xcpm.cpu_thermal_state"])
+            .args(["-n", "machdep.xcpm.cpu_thermal_state"])
             .output()
         {
             if let Ok(temp_str) = String::from_utf8(output.stdout) {
@@ -216,6 +216,7 @@ async fn get_base_power_consumption() -> f64 {
     50.0 // Watts
 }
 
+#[allow(dead_code)]
 async fn calculate_mining_power_consumption(mining_type: &str, threads: u32) -> f64 {
     let base_power = get_base_power_consumption().await;
     let per_thread_power = match mining_type {
@@ -227,6 +228,7 @@ async fn calculate_mining_power_consumption(mining_type: &str, threads: u32) -> 
     base_power + (threads as f64 * per_thread_power)
 }
 
+#[allow(dead_code)]
 async fn get_mining_uptime(process_name: &str) -> Option<u64> {
     let process_manager = get_process_manager();
     if let Some(process_info) = process_manager.get_process_info(process_name).await {
@@ -239,6 +241,7 @@ async fn get_mining_uptime(process_name: &str) -> Option<u64> {
     }
 }
 
+#[allow(dead_code)]
 async fn estimate_hashrate(mining_type: &str, threads: u32) -> f64 {
     // Estimate hashrate based on CPU performance and algorithm
     let mut sys = System::new_all();
@@ -271,7 +274,7 @@ async fn detect_gpu_devices() -> Result<Vec<GpuDevice>, AppError> {
 
     // NVIDIA GPU detection
     if let Ok(output) = std::process::Command::new("nvidia-smi")
-        .args(&[
+        .args([
             "--query-gpu=name,memory.total,driver_version,compute_capability",
             "--format=csv,noheader,nounits",
         ])
@@ -296,7 +299,7 @@ async fn detect_gpu_devices() -> Result<Vec<GpuDevice>, AppError> {
 
     // AMD GPU detection
     if let Ok(output) = std::process::Command::new("rocm-smi")
-        .args(&["--showproductname", "--showmeminfo", "vram", "--json"])
+        .args(["--showproductname", "--showmeminfo", "vram", "--json"])
         .output()
     {
         if output.status.success() {

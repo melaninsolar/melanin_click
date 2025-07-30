@@ -55,7 +55,7 @@ fn validate_legacy_address(address: &str, version_byte: u8) -> Result<bool, AppE
             // Verify checksum
             let (payload, checksum) = decoded.split_at(21);
             let hash1 = Sha256::digest(payload);
-            let hash2 = Sha256::digest(&hash1);
+            let hash2 = Sha256::digest(hash1);
 
             Ok(&hash2[0..4] == checksum)
         }
@@ -163,7 +163,7 @@ fn validate_whive_legacy_address(address: &str) -> Result<bool, AppError> {
             // Verify checksum using double SHA-256
             let (payload, checksum) = decoded.split_at(21);
             let hash1 = Sha256::digest(payload);
-            let hash2 = Sha256::digest(&hash1);
+            let hash2 = Sha256::digest(hash1);
 
             Ok(&hash2[0..4] == checksum)
         }
@@ -187,7 +187,7 @@ fn validate_whive_script_address(address: &str) -> Result<bool, AppError> {
             // Verify checksum
             let (payload, checksum) = decoded.split_at(21);
             let hash1 = Sha256::digest(payload);
-            let hash2 = Sha256::digest(&hash1);
+            let hash2 = Sha256::digest(hash1);
 
             Ok(&hash2[0..4] == checksum)
         }
@@ -268,7 +268,7 @@ pub fn validate_pool_url(url: &str) -> Result<bool, AppError> {
 
             // Check if port is valid
             match parsed_url.port() {
-                Some(port) => Ok(port > 0 && port <= 65535),
+                Some(port) => Ok(port > 0),
                 None => Ok(false), // Mining pools typically require explicit ports
             }
         }

@@ -1,4 +1,4 @@
-use crate::{log_stratum, AppError};
+use crate::AppError;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -139,7 +139,7 @@ impl StratumClient {
         tokio::spawn(async move {
             let mut stream_guard = stream_clone.lock().await;
             if let Some(ref mut stream) = *stream_guard {
-                let (reader, mut writer) = stream.split();
+                let (reader, _writer) = stream.split();
                 let mut buf_reader = BufReader::new(reader);
                 let mut line = String::new();
 
@@ -232,7 +232,8 @@ impl StratumClient {
                 "mining.set_difficulty" => {
                     if let Some(params) = &message.params {
                         if let Some(params_array) = params.as_array() {
-                            if let Some(difficulty) = params_array.get(0).and_then(|v| v.as_f64()) {
+                            if let Some(difficulty) = params_array.first().and_then(|v| v.as_f64())
+                            {
                                 let mut stats_guard = stats.lock().await;
                                 stats_guard.difficulty = difficulty;
                                 info!("Difficulty updated: {}", difficulty);
@@ -370,6 +371,7 @@ impl StratumClient {
 
 // Utility functions for Stratum protocol
 impl StratumMessage {
+    #[allow(dead_code)]
     fn from_json_str(s: &str) -> Result<Self, AppError> {
         let value: Value = serde_json::from_str(s)
             .map_err(|e| AppError::Stratum(format!("Invalid JSON: {}", e)))?;

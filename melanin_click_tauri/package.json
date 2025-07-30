@@ -12,7 +12,9 @@
     "tauri:build": "tauri build",
     "tauri:build:debug": "tauri build --debug",
     "release": "../build_release.sh",
-    "test": "echo \"Sprint 1 tests not implemented yet\" && exit 0"
+    "test": "echo \"Sprint 1 tests not implemented yet\" && exit 0",
+    "type-check": "tsc --noEmit",
+    "lint": "echo \"Linting not configured yet - Sprint 2 feature\" && exit 0"
   },
   "dependencies": {
     "react": "^18.3.1",

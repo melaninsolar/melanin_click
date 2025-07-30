@@ -40,6 +40,12 @@ pub struct ProcessManager {
     active_children: Arc<Mutex<HashMap<ProcessName, Child>>>,
 }
 
+impl Default for ProcessManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ProcessManager {
     pub fn new() -> Self {
         Self {
@@ -290,13 +296,11 @@ impl ProcessManager {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn check_process_exists(&self, pid: ProcessId) -> bool {
         #[cfg(unix)]
         {
-            match Command::new("kill")
-                .args(&["-0", &pid.to_string()])
-                .output()
-            {
+            match Command::new("kill").args(["-0", &pid.to_string()]).output() {
                 Ok(output) => output.status.success(),
                 Err(_) => false,
             }
@@ -322,7 +326,7 @@ impl ProcessManager {
 static PROCESS_MANAGER: std::sync::OnceLock<ProcessManager> = std::sync::OnceLock::new();
 
 pub fn get_process_manager() -> &'static ProcessManager {
-    PROCESS_MANAGER.get_or_init(|| ProcessManager::new())
+    PROCESS_MANAGER.get_or_init(ProcessManager::new)
 }
 
 // Utility functions
@@ -362,7 +366,7 @@ pub async fn find_executable_in_path(
 
 pub async fn ensure_directory_exists(path: &Path) -> Result<(), AppError> {
     if !path.exists() {
-        std::fs::create_dir_all(path).map_err(|e| AppError::Io(e))?;
+        std::fs::create_dir_all(path).map_err(AppError::Io)?;
     }
     Ok(())
 }

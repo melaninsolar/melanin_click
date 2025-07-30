@@ -44,6 +44,12 @@ pub struct MiningStatsCollector {
     processes: Arc<Mutex<HashMap<String, Child>>>,
 }
 
+impl Default for MiningStatsCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MiningStatsCollector {
     pub fn new() -> Self {
         Self {
