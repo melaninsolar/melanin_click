@@ -1,53 +1,147 @@
 # Contributing to Melanin Click
 
-## Code of Conduct
+Thank you for your interest in contributing to Melanin Click! This document provides guidelines for contributing to our cryptocurrency mining platform.
 
-All interactions with this project follow our [Code of Conduct][code-of-conduct].
-By participating, you are expected to honor this code. Violators can be banned
-from further participation in this project, or potentially all Coinbase projects.
+## 🚀 Quick Start
 
-[code-of-conduct]: 
+1. **Fork the repository** on GitHub
+2. **Clone your fork** locally: `git clone https://github.com/YOUR_USERNAME/melanin_click.git`
+3. **Install dependencies** and **run tests**: `./tests/run_tests.sh`
+4. **Create a feature branch**: `git checkout -b feature/your-feature-name`
+5. **Make your changes** and **commit**: `git commit -m "Description of changes"`
+6. **Push and create a pull request**
 
-## Bug Reports
+## 📋 Development Setup
 
-* Ensure your issue [has not already been reported][1]. It may already be fixed!
-* Include the steps you carried out to produce the problem.
-* Include the behavior you observed along with the behavior you expected, and
-  why you expected it.
-* Include any relevant stack traces or debugging output.
+### Prerequisites
+- **Node.js** 18+ and npm
+- **Rust** 1.70+ and Cargo
+- **Platform-specific dependencies**:
+  - **macOS**: Xcode Command Line Tools
+  - **Linux**: `build-essential`, `libwebkit2gtk-4.1-dev`, `libssl-dev`
+  - **Windows**: Microsoft C++ Build Tools
 
-## Feature Requests
+### Environment Setup
+```bash
+cd melanin_click_tauri
+npm install
+cp ../.env.example ../.env  # Configure your environment variables
+cargo check                # Verify Rust setup
+npm run tauri:dev          # Start development server
+```
 
-We welcome feedback with or without pull requests. If you have an idea for how
-to improve the project, great! All we ask is that you take the time to write a
-clear and concise explanation of what need you are trying to solve. If you have
-thoughts on _how_ it can be solved, include those too!
+## 🧪 Testing
 
-The best way to see a feature added, however, is to submit a pull request.
+**Run the complete test suite before submitting:**
+```bash
+./tests/run_tests.sh
+```
 
-## Pull Requests
+This includes:
+- Rust unit tests and clippy linting
+- TypeScript compilation checks
+- Frontend build verification
+- Security vulnerability scanning
+- Project structure validation
 
-* Before creating your pull request, it's usually worth asking if the code
-  you're planning on writing will actually be considered for merging. You can
-  do this by [opening an issue][1] and asking. It may also help give the
-  maintainers context for when the time comes to review your code.
+## 📝 Code Standards
 
-* Ensure your [commit messages are well-written][2]. This can double as your
-  pull request message, so it pays to take the time to write a clear message.
+### Rust Backend
+- **Follow Rust conventions**: Use `cargo fmt` and `cargo clippy`
+- **Write tests**: Add unit tests for new functionality
+- **Handle errors**: Use `AppError` for error handling
+- **Document functions**: Use doc comments for public APIs
+- **Security first**: Validate all inputs, use environment variables for secrets
 
-* Add tests for your feature. You should be able to look at other tests for
-  examples. If you're unsure, don't hesitate to [open an issue][1] and ask!
+### TypeScript Frontend
+- **Use TypeScript strictly**: Enable strict mode checks
+- **Follow React patterns**: Use hooks and functional components
+- **Style with Tailwind**: Use utility classes consistently
+- **Handle states**: Manage loading, error, and success states
 
-* Submit your pull request!
+### Git Conventions
+- **Conventional commits**: Use format `type(scope): description`
+- **Feature branches**: Create branches from `main` for new features
+- **Small commits**: Make focused, atomic commits
+- **Clear messages**: Write descriptive commit messages
 
-## Support Requests
+## 🐛 Bug Reports
 
-For security reasons, any communication referencing support tickets for Coinbase
-products will be ignored. The request will have its content redacted and will
-be locked to prevent further discussion.
+When reporting bugs, include:
 
-All support requests must be made via [our support team][3].
+1. **Environment details** (OS, version, hardware)
+2. **Steps to reproduce** the issue
+3. **Expected vs actual behavior**
+4. **Screenshots or logs** if applicable
+5. **Mining configuration** if mining-related
 
-[1]: 
-[2]:
-[3]: 
+## 💡 Feature Requests
+
+For new features:
+
+1. **Check existing issues** to avoid duplicates
+2. **Describe the problem** you're solving
+3. **Propose a solution** if you have ideas
+4. **Consider implementation complexity** and maintenance burden
+5. **Align with project roadmap** - see [TODO.md](../TODO.md)
+
+## 🔒 Security
+
+- **Never commit secrets**: Use `.env` files and environment variables
+- **Validate all inputs**: Especially mining addresses and pool URLs
+- **Report security issues privately**: Email the maintainers directly
+- **Follow security best practices**: See our security guidelines in testing
+
+## 📚 Documentation
+
+- **Update documentation** for any user-facing changes
+- **Add code comments** for complex logic
+- **Update README.md** if changing system structure
+- **Keep TODO.md current** with sprint progress
+
+## 🎯 Project Structure
+
+Understanding our architecture helps with contributions:
+
+```
+melanin_click/
+├── melanin_click_tauri/     # Main Tauri application
+│   ├── src/                 # React frontend
+│   └── src-tauri/           # Rust backend
+├── tests/                   # Testing framework
+├── docs/                    # Technical documentation
+└── assets/                  # Application assets
+```
+
+## 🤝 Code Review Process
+
+1. **Automated checks**: CI/CD must pass (tests, linting, building)
+2. **Code review**: At least one maintainer review required
+3. **Testing**: Verify changes work in development environment
+4. **Documentation**: Ensure docs are updated if needed
+5. **Merge**: Squash and merge to maintain clean history
+
+## 🚀 Sprint Development
+
+We follow a sprint-based development approach:
+
+- **Sprint 1**: Desktop Foundation ✅ (95% complete)
+- **Sprint 2**: Mobile & Solo Mining (August 2025)
+- **Sprint 3**: AI Network & Hardware (September 2025)
+
+See [TODO.md](../TODO.md) for current sprint status and planning.
+
+## 📞 Getting Help
+
+- **GitHub Issues**: For bugs and feature requests
+- **GitHub Discussions**: For questions and community support
+- **Code Review**: Tag maintainers in pull requests
+- **Documentation**: Check README.md and docs/ folder
+
+## 📄 License
+
+By contributing to Melanin Click, you agree that your contributions will be licensed under the [MIT License](../LICENSE).
+
+---
+
+**Thank you for contributing to Melanin Click!** 🚀⛏️

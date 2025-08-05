@@ -18,6 +18,10 @@ Transform cryptocurrency mining accessibility through:
 
 ---
 
+## 📋 Current Development Status
+
+**For detailed sprint planning, progress tracking, and development tasks, see [TODO.md](../TODO.md)**
+
 ## 📅 Development Timeline
 
 ### Phase 1: Foundation (Desktop Mining) 
