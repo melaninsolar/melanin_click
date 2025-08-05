@@ -180,9 +180,13 @@ for pattern in "${sensitive_patterns[@]}"; do
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
 done
 
-# Check for actual sensitive content (not dependencies)
+# Check for actual sensitive content (not dependencies or templates)
 echo -e "${YELLOW}Checking for actual sensitive data...${NC}"
-if find . -name "*.rs" -o -name "*.ts" -o -name "*.js" -o -name "*.json" | grep -v node_modules | grep -v target | xargs grep -l "password.*=" | grep -v test; then
+# Look for actual hardcoded passwords, not templates or format strings
+if find . -name "*.rs" -o -name "*.ts" -o -name "*.js" -o -name "*.json" | \
+   grep -v node_modules | grep -v target | grep -v dist | \
+   xargs grep -l 'password\s*=\s*"[^{]' 2>/dev/null | \
+   grep -v test; then
     echo -e "${YELLOW}⚠️ Found hardcoded passwords in source files (review needed)${NC}"
     TESTS_FAILED=$((TESTS_FAILED + 1))
 else
