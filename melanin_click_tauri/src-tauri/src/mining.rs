@@ -121,7 +121,7 @@ async fn get_cpuminer_download_url() -> Result<MinerDownload, AppError> {
             url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-win64.zip".to_string(),
             sha256: "example_windows_x64_hash".to_string(), // In production, get real hash
         },
-        _ => return Err(AppError::Mining(format!("Unsupported platform: {} {}", os, arch))),
+        _ => return Err(AppError::Mining(format!("Unsupported platform: {os} {arch}"))),
     };
 
     Ok(download)
@@ -138,12 +138,11 @@ async fn download_file_internal(
         .get(url)
         .send()
         .await
-        .map_err(|e| AppError::Mining(format!("Failed to download {}: {}", url, e)))?;
+        .map_err(|e| AppError::Mining(format!("Failed to download {url}: {e}")))?;
 
     if !response.status().is_success() {
         return Err(AppError::Mining(format!(
-            "Failed to download {}: HTTP {}",
-            url,
+            "Failed to download {url}: HTTP {}",
             response.status()
         )));
     }
@@ -152,7 +151,7 @@ async fn download_file_internal(
     let bytes = response
         .bytes()
         .await
-        .map_err(|e| AppError::Mining(format!("Failed to read response bytes: {}", e)))?;
+        .map_err(|e| AppError::Mining(format!("Failed to read response bytes: {e}")))?;
 
     // Track download progress
     let download_id = url.split('/').next_back().unwrap_or("download").to_string();
@@ -200,7 +199,7 @@ async fn extract_tarball(
 
     archive
         .unpack(extract_to)
-        .map_err(|e| AppError::Mining(format!("Failed to extract tarball: {}", e)))?;
+        .map_err(|e| AppError::Mining(format!("Failed to extract tarball: {e}")))?;
 
     Ok(())
 }
@@ -212,12 +211,12 @@ async fn extract_zip(
 ) -> Result<(), AppError> {
     let file = std::fs::File::open(archive_path)?;
     let mut archive = zip::ZipArchive::new(file)
-        .map_err(|e| AppError::Mining(format!("Failed to open zip: {}", e)))?;
+        .map_err(|e| AppError::Mining(format!("Failed to open zip: {e}")))?;
 
     for i in 0..archive.len() {
         let mut file = archive
             .by_index(i)
-            .map_err(|e| AppError::Mining(format!("Failed to read zip entry: {}", e)))?;
+            .map_err(|e| AppError::Mining(format!("Failed to read zip entry: {e}")))?;
 
         let outpath = match file.enclosed_name() {
             Some(path) => extract_to.join(path),
@@ -286,7 +285,7 @@ pub async fn start_enhanced_whive_mining(
     let num_threads = threads.unwrap_or(2); // Default to 2 threads as in example
     let _mining_intensity = intensity.unwrap_or(85);
     let pool = pool_url.unwrap_or_else(|| "stratum+tcp://206.189.2.17:3333".to_string());
-    let user_string = format!("{}.w1", whive_address); // Use .w1 worker name as in example
+    let user_string = format!("{whive_address}.w1"); // Use .w1 worker name as in example
 
     // Prepare mining command exactly as shown in example:
     // ./minerd -a yespower -o stratum+tcp://206.189.2.17:3333 -u WALLET_ADDRESS.worker -t 2
@@ -310,7 +309,7 @@ pub async fn start_enhanced_whive_mining(
 
     let child = cmd
         .spawn()
-        .map_err(|e| AppError::Mining(format!("Failed to start mining process: {}", e)))?;
+        .map_err(|e| AppError::Mining(format!("Failed to start mining process: {e}")))?;
 
     // Start monitoring the process for real-time statistics
     MINING_STATS
@@ -320,8 +319,7 @@ pub async fn start_enhanced_whive_mining(
     // Note: Process is now managed by MINING_STATS, no need for separate registration
 
     Ok(format!(
-        "Whive mining started successfully. Using {} threads on Yespower algorithm targeting pool: {}",
-        num_threads, pool
+        "Whive mining started successfully. Using {num_threads} threads on Yespower algorithm targeting pool: {pool}"
     ))
 }
 
@@ -414,7 +412,7 @@ async fn start_bitcoin_cpu_mining(
     };
 
     let num_threads = threads.unwrap_or(1); // Conservative for Bitcoin CPU mining
-    let user_string = format!("{}.{}", bitcoin_address, worker_name);
+    let user_string = format!("{bitcoin_address}.{worker_name}");
 
     // Prepare mining command exactly as shown in example:
     // ./minerd -a sha256d -o stratum+tcp://public-pool.io:21496 -u bc1q9rqda0ppf8phfe9e57k4r6qecmwyqcdltn0ktt.waka -p x
@@ -437,7 +435,7 @@ async fn start_bitcoin_cpu_mining(
 
     let child = cmd
         .spawn()
-        .map_err(|e| AppError::Mining(format!("Failed to start Bitcoin mining process: {}", e)))?;
+        .map_err(|e| AppError::Mining(format!("Failed to start Bitcoin mining process: {e}")))?;
 
     // Start monitoring the process for real-time statistics
     MINING_STATS
@@ -463,8 +461,7 @@ async fn start_bitcoin_cpu_mining(
     stats.insert("bitcoin".to_string(), mining_stats);
 
     Ok(format!(
-        "Bitcoin mining started successfully. Using {} threads on {} - {}",
-        num_threads, pool_name, pool_description
+        "Bitcoin mining started successfully. Using {num_threads} threads on {pool_name} - {pool_description}"
     ))
 }
 
@@ -495,7 +492,7 @@ async fn start_bitcoin_stick_mining(
         ),
     };
 
-    let user_string = format!("{}.{}", bitcoin_address, worker_name);
+    let user_string = format!("{bitcoin_address}.{worker_name}");
 
     // Prepare cgminer command for USB stick miners
     let args = vec![
@@ -540,8 +537,7 @@ async fn start_bitcoin_stick_mining(
     stats.insert("bitcoin_stick".to_string(), mining_stats);
 
     Ok(format!(
-        "Bitcoin stick mining started successfully with PID: {}. Using cgminer on {} - {}",
-        pid, pool_name, pool_description
+        "Bitcoin stick mining started successfully with PID: {pid}. Using cgminer on {pool_name} - {pool_description}"
     ))
 }
 
@@ -565,7 +561,7 @@ pub async fn stop_mining(
     let mut stats = state.mining_stats.lock().await;
     stats.remove(&mining_type);
 
-    Ok(format!("{} mining stopped successfully", mining_type))
+    Ok(format!("{mining_type} mining stopped successfully"))
 }
 
 // Get Mining Status with enhanced monitoring
@@ -616,7 +612,7 @@ pub async fn update_mining_config(
 
     let config_file = config_dir.join("mining_config.json");
     let config_json = serde_json::to_string_pretty(&config)
-        .map_err(|e| AppError::Mining(format!("Failed to serialize config: {}", e)))?;
+        .map_err(|e| AppError::Mining(format!("Failed to serialize config: {e}")))?;
 
     std::fs::write(&config_file, config_json)?;
 
@@ -815,13 +811,8 @@ pub async fn test_simple_mining(
         .await?;
 
     Ok(format!(
-        "Started miner with PID: {} - Command: {} -a {} -o {} -u {} -t {}",
-        pid,
-        miner_path.display(),
-        algorithm,
-        pool,
-        user_string,
-        threads
+        "Started miner with PID: {pid} - Command: {} -a {algorithm} -o {pool} -u {user_string} -t {threads}",
+        miner_path.display()
     ))
 }
 
@@ -870,9 +861,9 @@ pub async fn start_simple_whive_mining(
         .arg("-c")
         .arg(&osascript_cmd)
         .spawn()
-        .map_err(|e| AppError::Mining(format!("Failed to start Terminal: {}", e)))?;
+        .map_err(|e| AppError::Mining(format!("Failed to start Terminal: {e}")))?;
 
-    Ok(format!("Started Whive mining in Terminal: {}", cmd))
+    Ok(format!("Started Whive mining in Terminal: {cmd}"))
 }
 
 #[tauri::command]
@@ -898,7 +889,7 @@ pub async fn start_simple_bitcoin_mining(
         ));
     }
 
-    let user_string = format!("{}.{}", bitcoin_address, worker_name);
+    let user_string = format!("{bitcoin_address}.{worker_name}");
 
     // Exact command from Python script
     let cmd = format!(
@@ -917,7 +908,7 @@ pub async fn start_simple_bitcoin_mining(
         .arg("-c")
         .arg(&osascript_cmd)
         .spawn()
-        .map_err(|e| AppError::Mining(format!("Failed to start Terminal: {}", e)))?;
+        .map_err(|e| AppError::Mining(format!("Failed to start Terminal: {e}")))?;
 
-    Ok(format!("Started Bitcoin mining in Terminal: {}", cmd))
+    Ok(format!("Started Bitcoin mining in Terminal: {cmd}"))
 }

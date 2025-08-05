@@ -308,7 +308,7 @@ impl ProcessManager {
         #[cfg(windows)]
         {
             match Command::new("tasklist")
-                .args(&["/FI", &format!("PID eq {}", pid)])
+                .args(&["/FI", &format!("PID eq {pid}")])
                 .output()
             {
                 Ok(output) => {

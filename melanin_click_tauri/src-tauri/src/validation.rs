@@ -224,7 +224,7 @@ pub async fn verify_file_hash(
     let algo = algorithm.unwrap_or_else(|| "sha256".to_string());
 
     let contents = std::fs::read(&file_path)
-        .map_err(|e| AppError::Validation(format!("Failed to read file {}: {}", file_path, e)))?;
+        .map_err(|e| AppError::Validation(format!("Failed to read file {file_path}: {e}")))?;
 
     let computed_hash = match algo.to_lowercase().as_str() {
         "sha256" => {
@@ -234,7 +234,7 @@ pub async fn verify_file_hash(
         }
         "md5" => {
             let digest = md5::compute(&contents);
-            format!("{:x}", digest)
+            format!("{digest:x}")
         }
         _ => {
             return Err(AppError::Validation(format!(
