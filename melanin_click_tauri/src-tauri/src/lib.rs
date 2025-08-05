@@ -126,6 +126,7 @@ pub struct NodeStatus {
 }
 
 // Declare modules
+pub mod android_lifecycle;
 pub mod config;
 pub mod core;
 pub mod error_handler;
@@ -156,6 +157,7 @@ pub fn run() {
         .manage(AppState::default())
         .manage(mobile::MobileManager::new())
         .manage(solo_mining::SoloMiner::new())
+        .manage(android_lifecycle::AndroidLifecycleManager::new())
         .setup(|_app| {
             // Perform additional setup here
             tracing::info!("Tauri application setup complete");
@@ -210,6 +212,15 @@ pub fn run() {
             solo_mining::stop_solo_mining,
             solo_mining::get_solo_mining_stats,
             solo_mining::get_solo_block_template,
+            // Android lifecycle commands
+            android_lifecycle::android_app_resume,
+            android_lifecycle::android_app_pause,
+            android_lifecycle::start_foreground_mining_service,
+            android_lifecycle::stop_foreground_mining_service,
+            android_lifecycle::request_disable_battery_optimization,
+            android_lifecycle::set_background_mining_enabled,
+            android_lifecycle::get_android_lifecycle_state,
+            android_lifecycle::update_mining_notification,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
