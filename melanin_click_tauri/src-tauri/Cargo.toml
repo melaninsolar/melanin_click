@@ -24,6 +24,10 @@ tauri-plugin-shell = "2.2"
 tauri-plugin-fs = "2.3"
 tauri-plugin-http = "2.4"
 tauri-plugin-process = "2.2"
+
+# Mobile-specific plugins (when available)
+# tauri-plugin-notification = "2.0"
+# Note: Battery monitoring will be implemented via platform-specific code
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.12", features = ["json", "multipart"] }

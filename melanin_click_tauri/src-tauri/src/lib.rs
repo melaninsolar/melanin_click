@@ -132,8 +132,10 @@ pub mod error_handler;
 pub mod logging;
 pub mod mining;
 pub mod mining_stats;
+pub mod mobile;
 pub mod monitoring;
 pub mod node;
+pub mod solo_mining;
 pub mod stratum;
 pub mod utils;
 pub mod validation;
@@ -152,6 +154,8 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_process::init())
         .manage(AppState::default())
+        .manage(mobile::MobileManager::new())
+        .manage(solo_mining::SoloMiner::new())
         .setup(|_app| {
             // Perform additional setup here
             tracing::info!("Tauri application setup complete");
@@ -195,6 +199,17 @@ pub fn run() {
             error_handler::get_error_history,
             error_handler::clear_error_history,
             error_handler::get_error_statistics,
+            // Mobile commands
+            mobile::get_battery_status,
+            mobile::update_mobile_settings,
+            mobile::get_mobile_settings,
+            mobile::is_mobile_mining_allowed,
+            // Solo mining commands
+            solo_mining::configure_solo_mining,
+            solo_mining::start_solo_mining,
+            solo_mining::stop_solo_mining,
+            solo_mining::get_solo_mining_stats,
+            solo_mining::get_solo_block_template,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
