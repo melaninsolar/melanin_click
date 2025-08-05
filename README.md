@@ -117,9 +117,10 @@ melanin_click/
 │   └── CONTRIBUTING.md                 # Development guidelines
 │
 ├── 📂 tests/                 # All test files & testing framework
-│   ├── unit/                            # Unit tests
-│   │   └── rust_backend_tests.rs        # Rust backend tests
-│   └── frontend_integration_tests.js    # Frontend integration tests
+│   ├── run_tests.sh                     # Comprehensive test runner
+│   ├── frontend_integration_tests.js    # Frontend integration tests
+│   └── unit/                            # Unit test files
+│       └── rust_backend_tests.rs        # Rust backend unit tests
 │
 ├── 📂 melanin_click_tauri/   # Main Tauri application
 │   ├── 📂 src/              # React frontend source
@@ -130,11 +131,19 @@ melanin_click/
 │   │   └── types/          # TypeScript definitions
 │   ├── 📂 src-tauri/       # Rust backend source
 │   │   ├── src/           # Rust source files
-│   │   │   ├── main.rs    # Main entry point
-│   │   │   ├── core.rs    # Core system functions
-│   │   │   ├── mining.rs  # Mining operations
-│   │   │   ├── node.rs    # Node management
-│   │   │   └── validation.rs # Address validation
+│   │   │   ├── main.rs         # Main entry point
+│   │   │   ├── lib.rs          # Library interface
+│   │   │   ├── core.rs         # Process & system management
+│   │   │   ├── mining.rs       # Mining operations & pools
+│   │   │   ├── mining_stats.rs # Real-time mining statistics
+│   │   │   ├── monitoring.rs   # System monitoring & hardware
+│   │   │   ├── node.rs         # Bitcoin/Whive node management
+│   │   │   ├── stratum.rs      # Native Stratum protocol client
+│   │   │   ├── validation.rs   # Address & input validation
+│   │   │   ├── config.rs       # Environment configuration
+│   │   │   ├── logging.rs      # Structured logging system
+│   │   │   ├── error_handler.rs # Centralized error handling
+│   │   │   └── utils.rs        # Utility functions
 │   │   ├── Cargo.toml     # Rust dependencies
 │   │   └── tauri.conf.json # Tauri configuration
 │   ├── package.json       # Node.js dependencies
@@ -160,10 +169,13 @@ melanin_click/
 - File download and verification
 
 **Testing Framework**
-- Unit tests for Rust backend
+- Comprehensive test runner (`./tests/run_tests.sh`)
+- Unit tests for Rust backend (6 passing tests)
 - Integration tests for React frontend
-- Performance and security testing
+- Security vulnerability scanning
+- Project structure validation
 - Cross-platform compatibility tests
+- Automated CI/CD pipeline integration
 
 **Build System**
 - Automated cross-platform builds
