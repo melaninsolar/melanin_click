@@ -142,6 +142,11 @@ pub mod utils;
 pub mod validation;
 
 pub fn run() {
+    main()
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+fn main() {
     // Initialize configuration and logging early
     config::init_config().expect("Failed to initialize configuration");
     logging::init_logging().expect("Failed to initialize logging");
