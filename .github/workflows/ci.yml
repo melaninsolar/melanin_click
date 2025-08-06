@@ -131,6 +131,8 @@ jobs:
     needs: [test, security-audit]
     if: github.ref == 'refs/heads/main'
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -172,16 +174,19 @@ jobs:
       working-directory: melanin_click_tauri
       run: npm run tauri build
       env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
         TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: melanin-click-${{ matrix.os }}
         path: |
           melanin_click_tauri/src-tauri/target/release/bundle/
         retention-days: 30
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   documentation:
     name: Documentation Check
