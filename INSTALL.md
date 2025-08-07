@@ -6,7 +6,7 @@ Complete installation guide for Melanin Click cryptocurrency mining platform acr
 
 ### Download Pre-built Releases
 
-1. **Visit our [Releases Page](https://github.com/xyephy/melanin_click/releases)**
+1. **Visit our [Releases Page](https://github.com/melaninsolar/melanin_click/releases)**
 2. **Download for your platform:**
    - **Windows**: `melanin-click-windows.msi`
    - **macOS**: `melanin-click-macos.dmg`
@@ -56,7 +56,7 @@ Complete installation guide for Melanin Click cryptocurrency mining platform acr
 #### Option 1: DEB Package (Ubuntu/Debian)
 ```bash
 # Download the .deb file
-wget https://github.com/xyephy/melanin_click/releases/latest/download/melanin-click-linux.deb
+wget https://github.com/melaninsolar/melanin_click/releases/latest/download/melanin-click-linux.deb
 
 # Install
 sudo dpkg -i melanin-click-linux.deb
@@ -71,7 +71,7 @@ melanin-click
 #### Option 2: AppImage (Universal)
 ```bash
 # Download AppImage
-wget https://github.com/xyephy/melanin_click/releases/latest/download/melanin-click-linux.AppImage
+wget https://github.com/melaninsolar/melanin_click/releases/latest/download/melanin-click-linux.AppImage
 
 # Make executable
 chmod +x melanin-click-linux.AppImage
@@ -95,7 +95,7 @@ chmod +x melanin-click-linux.AppImage
 2. **Download APK:**
    ```bash
    # Download directly on device
-   wget https://github.com/xyephy/melanin_click/releases/latest/download/melanin-click-android.apk
+   wget https://github.com/melaninsolar/melanin_click/releases/latest/download/melanin-click-android.apk
    
    # Or via ADB from computer
    adb install melanin-click-android.apk
@@ -162,7 +162,7 @@ sudo apt install build-essential curl wget file libssl-dev libgtk-3-dev libayata
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/xyephy/melanin_click.git
+git clone https://github.com/melaninsolar/melanin_click.git
 cd melanin_click
 ```
 
@@ -420,7 +420,7 @@ npm run type-check
 
 ### Getting Help
 
-- **GitHub Issues**: [Report bugs](https://github.com/xyephy/melanin_click/issues)
+- **GitHub Issues**: [Report bugs](https://github.com/melaninsolar/melanin_click/issues)
 - **Documentation**: Check [README.md](README.md) and [docs/](docs/)
 - **Contributing**: See [CONTRIBUTING.md](docs/CONTRIBUTING.md)
 - **Security**: Report privately to maintainers
