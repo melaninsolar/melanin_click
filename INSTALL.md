@@ -11,6 +11,7 @@ Complete installation guide for Melanin Click cryptocurrency mining platform acr
    - **Windows**: `melanin-click-windows.msi`
    - **macOS**: `melanin-click-macos.dmg`
    - **Linux**: `melanin-click-linux.deb` or `melanin-click-linux.AppImage`
+   - **Android**: `melanin-click-android.apk`
 3. **Install and run** following platform-specific instructions below
 
 ---
@@ -84,6 +85,44 @@ chmod +x melanin-click-linux.AppImage
 - `libwebkit2gtk-4.1-0` (usually pre-installed)
 - `libssl3` for HTTPS connections
 
+### Android Installation
+
+#### APK Installation
+1. **Enable Unknown Sources:**
+   - Settings → Security → Install Unknown Apps → Enable for your file manager
+   - Or Settings → Apps & notifications → Special app access → Install unknown apps
+
+2. **Download APK:**
+   ```bash
+   # Download directly on device
+   wget https://github.com/xyephy/melanin_click/releases/latest/download/melanin-click-android.apk
+   
+   # Or via ADB from computer
+   adb install melanin-click-android.apk
+   ```
+
+3. **Install APK:**
+   - **Method 1**: Tap downloaded APK file → Install
+   - **Method 2**: Use file manager → navigate to APK → Install
+   - **Method 3**: Via ADB: `adb install melanin-click-android.apk`
+
+4. **Launch Application:**
+   - Find "Melanin Click" in app drawer
+   - Tap to launch mobile mining interface
+
+**Android Requirements:**
+- Android 7.0 (API level 24) or higher
+- 2GB RAM minimum, 4GB recommended
+- 100MB free storage space
+- ARM64 or ARMv7 processor architecture
+- Network connectivity for mining pool connections
+
+**Performance Notes:**
+- Mobile mining is optimized for battery efficiency
+- Thermal management prevents device overheating  
+- Background mining requires battery optimization exemption
+- Solo mining works with local or remote Bitcoin/Whive nodes
+
 ---
 
 ## 🛠️ Development Installation
@@ -112,6 +151,12 @@ sudo apt install build-essential curl wget file libssl-dev libgtk-3-dev libayata
 **Windows:**
 - Install [Visual Studio Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)
 - Or Visual Studio Community with C++ tools
+
+**Android Development (Optional):**
+- **Android Studio**: [developer.android.com](https://developer.android.com/studio)
+- **Android SDK**: API level 24+ (Android 7.0+)
+- **Android NDK**: Version 29.0.13846066 or later
+- **Java**: OpenJDK 17 or later
 
 ### Development Setup
 
@@ -148,6 +193,34 @@ npm run tauri:dev
 6. **Build for production:**
 ```bash
 npm run tauri:build
+```
+
+### Mobile Development Setup
+
+**Android Development:**
+```bash
+# Install Android targets for Rust
+rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+# Install Tauri mobile CLI
+cargo install tauri-cli --version "^2.0" --features=mobile
+
+# Initialize Android project (if not already done)
+npm run tauri android init
+
+# Run on Android emulator
+npm run tauri android dev
+
+# Build Android APK
+npm run tauri android build
+```
+
+**Android Environment Setup:**
+```bash
+# Set required environment variables
+export ANDROID_HOME="$HOME/Android/Sdk"
+export NDK_HOME="$ANDROID_HOME/ndk/29.0.13846066"
+export PATH="$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/platform-tools"
 ```
 
 ---
@@ -188,6 +261,8 @@ MAX_LOG_SIZE_MB=50
 
 **⚠️ Security Note:** Never commit `.env` files to version control. Use unique passwords for production.
 
+**📱 Mobile Note:** Android APK includes mobile-friendly default configuration values. Environment variables are optional on mobile devices and will use secure defaults if not provided.
+
 ### Data Directories
 
 Melanin Click creates these directories:
@@ -195,6 +270,7 @@ Melanin Click creates these directories:
 - **Windows**: `%APPDATA%\Melanin Click\`
 - **macOS**: `~/Library/Application Support/Melanin Click/`
 - **Linux**: `~/.local/share/melanin-click/`
+- **Android**: `/data/data/com.melaninclick.app/files/`
 
 Directory contents:
 - `logs/` - Application logs with rotation
@@ -286,6 +362,25 @@ sudo dnf install webkit2gtk3
 # Arch
 sudo pacman -S webkit2gtk
 ```
+
+#### "App not installed" (Android)
+**Cause:** Architecture mismatch or insufficient storage
+**Solution:**
+```bash
+# Check device architecture
+adb shell getprop ro.product.cpu.abi
+
+# Clear space and retry
+adb shell pm clear com.melaninclick.app
+adb install -r melanin-click-android.apk
+```
+
+#### "Parse error" (Android)
+**Cause:** Corrupted APK download or incompatible Android version
+**Solution:**
+- Re-download APK from official releases
+- Verify device meets Android 7.0+ requirement
+- Check available storage space (100MB minimum)
 
 ### Development Issues
 

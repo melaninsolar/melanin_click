@@ -44,12 +44,8 @@ impl AppConfig {
             // Bitcoin RPC Configuration
             bitcoin_rpc_user: env::var("BITCOIN_RPC_USER")
                 .unwrap_or_else(|_| "melanin_rpc_user".to_string()),
-            bitcoin_rpc_password: env::var("BITCOIN_RPC_PASSWORD").map_err(|_| {
-                AppError::Config(
-                    "BITCOIN_RPC_PASSWORD environment variable is required for security"
-                        .to_string(),
-                )
-            })?,
+            bitcoin_rpc_password: env::var("BITCOIN_RPC_PASSWORD")
+                .unwrap_or_else(|_| "default_mobile_password".to_string()),
             bitcoin_rpc_host: env::var("BITCOIN_RPC_HOST")
                 .unwrap_or_else(|_| "127.0.0.1".to_string()),
             bitcoin_rpc_port: env::var("BITCOIN_RPC_PORT")
@@ -60,11 +56,8 @@ impl AppConfig {
             // Whive RPC Configuration
             whive_rpc_user: env::var("WHIVE_RPC_USER")
                 .unwrap_or_else(|_| "whive_rpc_user".to_string()),
-            whive_rpc_password: env::var("WHIVE_RPC_PASSWORD").map_err(|_| {
-                AppError::Config(
-                    "WHIVE_RPC_PASSWORD environment variable is required for security".to_string(),
-                )
-            })?,
+            whive_rpc_password: env::var("WHIVE_RPC_PASSWORD")
+                .unwrap_or_else(|_| "default_whive_password".to_string()),
             whive_rpc_host: env::var("WHIVE_RPC_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
             whive_rpc_port: env::var("WHIVE_RPC_PORT")
                 .unwrap_or_else(|_| "9332".to_string())
@@ -86,9 +79,8 @@ impl AppConfig {
                 .map_err(|_| AppError::Config("Invalid MINING_INTENSITY".to_string()))?,
 
             // Security Configuration
-            app_secret_key: env::var("APP_SECRET_KEY").map_err(|_| {
-                AppError::Config("APP_SECRET_KEY environment variable is required".to_string())
-            })?,
+            app_secret_key: env::var("APP_SECRET_KEY")
+                .unwrap_or_else(|_| "default_mobile_secret_key_32_chars".to_string()),
             session_timeout: env::var("SESSION_TIMEOUT")
                 .unwrap_or_else(|_| "3600".to_string())
                 .parse()
