@@ -18,7 +18,20 @@
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,
-        "center": true
+        "center": true,
+        "focus": true,
+        "visible": true,
+        "decorations": true,
+        "alwaysOnTop": false,
+        "skipTaskbar": false,
+        "maximized": false,
+        "minimized": false,
+        "closable": true,
+        "minimizable": true,
+        "maximizable": true,
+        "fullscreen": false,
+        "transparent": false,
+        "url": "http://localhost:1420"
       }
     ],
     "security": {

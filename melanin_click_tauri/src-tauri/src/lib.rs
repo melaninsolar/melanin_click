@@ -163,8 +163,84 @@ fn main() {
         .manage(mobile::MobileManager::new())
         .manage(solo_mining::SoloMiner::new())
         .manage(android_lifecycle::AndroidLifecycleManager::new())
-        .setup(|_app| {
-            // Perform additional setup here
+        .setup(|app| {
+            // Enhanced window setup and visibility management
+            logging::log_window_event("setup_start", "main", Some("Beginning Tauri application setup"));
+            logging::log_troubleshooting_info();
+            
+            // Get the main window
+            if let Some(window) = app.get_webview_window("main") {
+                logging::log_window_event("found", "main", Some("Main window located successfully"));
+                
+                // Ensure window is visible and focused
+                if let Err(e) = window.show() {
+                    logging::log_window_event("show_failed", "main", Some(&format!("Error: {}", e)));
+                    tracing::error!("Failed to show window: {}", e);
+                } else {
+                    logging::log_window_event("shown", "main", None);
+                }
+                
+                if let Err(e) = window.set_focus() {
+                    logging::log_window_event("focus_failed", "main", Some(&format!("Error: {}", e)));
+                    tracing::error!("Failed to focus window: {}", e);
+                } else {
+                    logging::log_window_event("focused", "main", None);
+                }
+                
+                // Bring window to front on macOS
+                #[cfg(target_os = "macos")]
+                {
+                    logging::log_window_event("macos_focus_strategy", "main", Some("Applying macOS-specific window focus"));
+                    if let Err(e) = window.set_always_on_top(true) {
+                        tracing::warn!("Failed to set always on top temporarily: {}", e);
+                    } else {
+                        // Remove always on top after a brief moment
+                        let window_clone = window.clone();
+                        std::thread::spawn(move || {
+                            std::thread::sleep(std::time::Duration::from_millis(500));
+                            if let Err(e) = window_clone.set_always_on_top(false) {
+                                tracing::warn!("Failed to remove always on top: {}", e);
+                            } else {
+                                logging::log_window_event("macos_focus_complete", "main", Some("macOS focus strategy applied successfully"));
+                            }
+                        });
+                    }
+                }
+                
+                logging::log_window_event("configuration_complete", "main", None);
+            } else {
+                logging::log_window_event("not_found", "main", Some("CRITICAL: Main window not found"));
+                tracing::error!("Main window not found! This is a critical issue.");
+                
+                // Try to create a new window as fallback
+                logging::log_window_event("fallback_attempt", "main", Some("Attempting to create fallback window"));
+                match tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("index.html".into()))
+                    .title("Melanin Click - Bitcoin & Whive Desktop Client")
+                    .inner_size(1200.0, 800.0)
+                    .min_inner_size(800.0, 600.0)
+                    .center()
+                    .resizable(true)
+                    .visible(true)
+                    .focused(true)
+                    .build() {
+                    Ok(window) => {
+                        logging::log_window_event("fallback_created", "main", Some("Fallback window created successfully"));
+                        if let Err(e) = window.show() {
+                            logging::log_window_event("fallback_show_failed", "main", Some(&format!("Error: {}", e)));
+                            tracing::error!("Failed to show fallback window: {}", e);
+                        } else {
+                            logging::log_window_event("fallback_shown", "main", None);
+                        }
+                    },
+                    Err(e) => {
+                        logging::log_window_event("fallback_failed", "main", Some(&format!("CRITICAL ERROR: {}", e)));
+                        tracing::error!("Failed to create fallback window: {}", e);
+                        return Err(Box::new(e));
+                    }
+                }
+            }
+            
+            logging::log_window_event("setup_complete", "main", Some("Tauri application setup finished"));
             tracing::info!("Tauri application setup complete");
             Ok(())
         })

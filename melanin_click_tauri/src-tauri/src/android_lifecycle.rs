@@ -83,7 +83,7 @@ impl AndroidLifecycleManager {
 
     pub async fn start_foreground_service(&self) -> Result<(), String> {
         let mut state = self.state.lock().await;
-        let config = self.service_config.lock().await;
+        let _config = self.service_config.lock().await; // Prefixed with _ to indicate intentional unused
         
         if state.foreground_service_active {
             return Ok(());

@@ -216,6 +216,65 @@ pub fn log_system_startup() {
         arch = std::env::consts::ARCH,
         "Melanin Click application starting"
     );
+    
+    // Additional startup diagnostics
+    log_system_info();
+}
+
+pub fn log_system_info() {
+    use std::env;
+    
+    tracing::info!(
+        component = "system",
+        event = "diagnostics",
+        rust_version = env!("RUSTC_VERSION", "unknown"),
+        target_triple = env::var("TARGET").unwrap_or_else(|_| "unknown".to_string()),
+        debug_mode = cfg!(debug_assertions),
+        "System diagnostics"
+    );
+    
+    // Log environment variables relevant to display
+    if let Ok(display) = env::var("DISPLAY") {
+        tracing::info!(component = "system", display = %display, "Display environment detected");
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        tracing::info!(component = "system", platform_specific = "macOS detected, window focus strategies enabled");
+    }
+    
+    // Log current working directory
+    if let Ok(cwd) = env::current_dir() {
+        tracing::info!(component = "system", working_directory = %cwd.display(), "Working directory");
+    }
+}
+
+pub fn log_window_event(event_type: &str, window_label: &str, details: Option<&str>) {
+    match details {
+        Some(details) => tracing::info!(
+            component = "window",
+            event = event_type,
+            window = window_label,
+            details = details,
+            "Window event"
+        ),
+        None => tracing::info!(
+            component = "window", 
+            event = event_type,
+            window = window_label,
+            "Window event"
+        ),
+    }
+}
+
+pub fn log_troubleshooting_info() {
+    tracing::info!(component = "troubleshooting", "=== TROUBLESHOOTING DIAGNOSTICS ===");
+    tracing::info!(component = "troubleshooting", "1. Check Activity Monitor for 'melanin-click' process");
+    tracing::info!(component = "troubleshooting", "2. Verify Vite dev server is running on http://localhost:1420");
+    tracing::info!(component = "troubleshooting", "3. Look for window creation errors in logs");
+    tracing::info!(component = "troubleshooting", "4. On macOS, check System Preferences > Security & Privacy");
+    tracing::info!(component = "troubleshooting", "5. Try running with RUST_LOG=debug for more details");
+    tracing::info!(component = "troubleshooting", "=========================================");
 }
 
 pub fn log_system_shutdown() {
