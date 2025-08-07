@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::sync::Mutex;
+use tauri::Manager;
 
 // Core error handling
 #[derive(Debug, thiserror::Error)]

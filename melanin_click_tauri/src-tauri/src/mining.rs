@@ -60,8 +60,8 @@ pub async fn download_and_install_miners(state: State<'_, AppState>) -> Result<S
     if !cpuminer_path.exists() {
         download_file_internal(&miner_download.url, &cpuminer_path, &state).await?;
 
-        // Verify downloaded file integrity (skip for example hashes)
-        if !miner_download.sha256.starts_with("example_") {
+        // Verify downloaded file integrity (skip for example hashes and manual verification)
+        if !miner_download.sha256.starts_with("example_") && miner_download.sha256 != "VERIFY_MANUALLY" {
             let is_valid = crate::validation::verify_file_hash(
                 cpuminer_path.to_string_lossy().to_string(),
                 miner_download.sha256,
@@ -104,22 +104,25 @@ async fn get_cpuminer_download_url() -> Result<MinerDownload, AppError> {
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;
 
+    // Note: cpuminer-multi v1.3.1 only has Windows binaries available
+    // For other platforms, we'll need to compile from source or use alternatives
     let download = match (os, arch) {
-        ("linux", "x86_64") => MinerDownload {
-            url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-linux-x64.tar.gz".to_string(),
-            sha256: "example_linux_x64_hash".to_string(), // In production, get real hash
+        ("linux", "x86_64") => {
+            // No precompiled Linux binaries in v1.3.1, using build instructions
+            return Err(AppError::Mining(
+                "Linux binaries not available. Please compile cpuminer-multi from source: https://github.com/tpruvot/cpuminer-multi".to_string()
+            ));
         },
-        ("macos", "x86_64") => MinerDownload {
-            url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-macos-x64.tar.gz".to_string(),
-            sha256: "example_macos_x64_hash".to_string(), // In production, get real hash
-        },
-        ("macos", "aarch64") => MinerDownload {
-            url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-macos-arm64.tar.gz".to_string(),
-            sha256: "example_macos_arm64_hash".to_string(), // In production, get real hash
+        ("macos", _) => {
+            // No precompiled macOS binaries in v1.3.1, using build instructions
+            return Err(AppError::Mining(
+                "macOS binaries not available. Please compile cpuminer-multi from source: https://github.com/tpruvot/cpuminer-multi".to_string()
+            ));
         },
         ("windows", "x86_64") => MinerDownload {
-            url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.7/cpuminer-multi-1.3.7-win64.zip".to_string(),
-            sha256: "example_windows_x64_hash".to_string(), // In production, get real hash
+            // Using actual v1.3.1 release - Windows binaries are available
+            url: "https://github.com/tpruvot/cpuminer-multi/releases/download/v1.3.1-multi/cpuminer-multi-rel1.3.1-x64.zip".to_string(),
+            sha256: "VERIFY_MANUALLY".to_string(), // User should verify manually as checksums weren't published
         },
         _ => return Err(AppError::Mining(format!("Unsupported platform: {os} {arch}"))),
     };
