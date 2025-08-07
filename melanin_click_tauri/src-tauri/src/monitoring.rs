@@ -1,9 +1,9 @@
+use crate::core::get_process_manager;
+use crate::mining_stats::MINING_STATS;
+use crate::{AppError, AppState, GpuDevice, MiningStats, SystemInfo};
 use std::collections::HashMap;
 use sysinfo::System;
 use tauri::State;
-use crate::{AppState, AppError, MiningStats, SystemInfo, GpuDevice};
-use crate::core::get_process_manager;
-use crate::mining_stats::MINING_STATS;
 
 // Get Real-time Mining Statistics
 #[tauri::command]
@@ -14,12 +14,17 @@ pub async fn get_real_mining_stats(
     // Get real stats from the mining stats collector
     if let Some(real_stats) = MINING_STATS.get_stats(&mining_type).await {
         // Update temperature and earnings calculation
-        MINING_STATS.update_temperature(&mining_type, get_cpu_temperature().await.unwrap_or(35.0)).await;
+        MINING_STATS
+            .update_temperature(&mining_type, get_cpu_temperature().await.unwrap_or(35.0))
+            .await;
         MINING_STATS.calculate_earnings(&mining_type).await;
-        
+
         // Get updated stats
-        let updated_stats = MINING_STATS.get_stats(&mining_type).await.unwrap_or(real_stats.clone());
-        
+        let updated_stats = MINING_STATS
+            .get_stats(&mining_type)
+            .await
+            .unwrap_or(real_stats.clone());
+
         // Convert to the UI MiningStats format
         Ok(MiningStats {
             hashrate: updated_stats.hashrate,
@@ -61,31 +66,31 @@ pub async fn get_real_mining_stats(
 pub async fn get_system_info(state: State<'_, AppState>) -> Result<SystemInfo, AppError> {
     let mut sys = System::new_all();
     sys.refresh_all();
-    
+
     // Get system information (simplified for sysinfo v0.30)
     let platform = std::env::consts::OS.to_string();
     let arch = std::env::consts::ARCH.to_string();
-    
+
     let total_memory = sys.total_memory();
     let available_memory = sys.available_memory();
-    
+
     // For now, set disk space to default values - can be enhanced later
-    let disk_space = 1000_000_000_000u64; // 1TB default
+    let disk_space = 1_000_000_000_000_u64; // 1TB default
     let available_disk_space = 500_000_000_000u64; // 500GB default
-    
+
     // CPU information
     let cpu_cores = sys.physical_core_count().unwrap_or(0);
     let cpu_threads = sys.cpus().len();
-    let cpu_brand = sys.cpus().first()
+    let cpu_brand = sys
+        .cpus()
+        .first()
         .map(|cpu| cpu.brand().to_string())
         .unwrap_or_else(|| "Unknown".to_string());
-    let cpu_frequency = sys.cpus().first()
-        .map(|cpu| cpu.frequency())
-        .unwrap_or(0);
-    
+    let cpu_frequency = sys.cpus().first().map(|cpu| cpu.frequency()).unwrap_or(0);
+
     // GPU detection
     let gpu_devices = detect_gpu_devices().await?;
-    
+
     let system_info = SystemInfo {
         platform,
         arch,
@@ -99,11 +104,11 @@ pub async fn get_system_info(state: State<'_, AppState>) -> Result<SystemInfo, A
         cpu_frequency,
         gpu_devices,
     };
-    
+
     // Cache the system info
     let mut cached_info = state.system_info.lock().await;
     *cached_info = Some(system_info.clone());
-    
+
     Ok(system_info)
 }
 
@@ -112,18 +117,18 @@ pub async fn get_system_info(state: State<'_, AppState>) -> Result<SystemInfo, A
 pub async fn get_hardware_info() -> Result<crate::HardwareInfo, AppError> {
     let mut sys = System::new_all();
     sys.refresh_all();
-    
+
     let cpu_cores = sys.physical_core_count().unwrap_or(0);
     let cpu_threads = sys.cpus().len();
-    let cpu_brand = sys.cpus().first()
+    let cpu_brand = sys
+        .cpus()
+        .first()
         .map(|cpu| cpu.brand().to_string())
         .unwrap_or_else(|| "Unknown".to_string());
-    let cpu_frequency = sys.cpus().first()
-        .map(|cpu| cpu.frequency())
-        .unwrap_or(0);
-    
+    let cpu_frequency = sys.cpus().first().map(|cpu| cpu.frequency()).unwrap_or(0);
+
     let gpu_devices = detect_gpu_devices().await?;
-    
+
     Ok(crate::HardwareInfo {
         cpu_cores,
         cpu_threads,
@@ -139,25 +144,25 @@ pub async fn get_hardware_info() -> Result<crate::HardwareInfo, AppError> {
 #[tauri::command]
 pub async fn benchmark_hardware() -> Result<HashMap<String, f64>, AppError> {
     let mut results = HashMap::new();
-    
+
     // CPU benchmarks
     let cpu_threads = num_cpus::get();
-    
+
     // Simulate Yespower benchmark
     let yespower_hashrate = benchmark_yespower_cpu(cpu_threads).await?;
     results.insert("CPU_Yespower".to_string(), yespower_hashrate);
-    
+
     // Simulate SHA-256 benchmark
     let sha256_hashrate = benchmark_sha256_cpu(cpu_threads).await?;
     results.insert("CPU_SHA256".to_string(), sha256_hashrate);
-    
+
     // GPU benchmarks (if available)
     let gpu_devices = detect_gpu_devices().await?;
     for (i, gpu) in gpu_devices.iter().enumerate() {
         let gpu_hashrate = benchmark_gpu_sha256(gpu).await?;
         results.insert(format!("GPU_{}_SHA256", i), gpu_hashrate);
     }
-    
+
     Ok(results)
 }
 
@@ -177,12 +182,12 @@ async fn get_cpu_temperature() -> Option<f64> {
             }
         }
     }
-    
+
     #[cfg(target_os = "macos")]
     {
         // Use system_profiler or similar command
         if let Ok(output) = std::process::Command::new("sysctl")
-            .args(&["-n", "machdep.xcpm.cpu_thermal_state"])
+            .args(["-n", "machdep.xcpm.cpu_thermal_state"])
             .output()
         {
             if let Ok(temp_str) = String::from_utf8(output.stdout) {
@@ -192,7 +197,7 @@ async fn get_cpu_temperature() -> Option<f64> {
             }
         }
     }
-    
+
     #[cfg(target_os = "windows")]
     {
         // Windows temperature reading would require WMI
@@ -202,7 +207,7 @@ async fn get_cpu_temperature() -> Option<f64> {
         let cpu_usage = sys.global_cpu_info().cpu_usage();
         return Some(35.0 + (cpu_usage as f64 * 0.4)); // Estimate
     }
-    
+
     None
 }
 
@@ -211,17 +216,19 @@ async fn get_base_power_consumption() -> f64 {
     50.0 // Watts
 }
 
+#[allow(dead_code)]
 async fn calculate_mining_power_consumption(mining_type: &str, threads: u32) -> f64 {
     let base_power = get_base_power_consumption().await;
     let per_thread_power = match mining_type {
-        "whive" => 15.0, // Watts per thread for Yespower
+        "whive" => 15.0,  // Watts per thread for Yespower
         "bitcoin" => 8.0, // Watts per thread for SHA-256 CPU
         _ => 10.0,
     };
-    
+
     base_power + (threads as f64 * per_thread_power)
 }
 
+#[allow(dead_code)]
 async fn get_mining_uptime(process_name: &str) -> Option<u64> {
     let process_manager = get_process_manager();
     if let Some(process_info) = process_manager.get_process_info(process_name).await {
@@ -234,37 +241,43 @@ async fn get_mining_uptime(process_name: &str) -> Option<u64> {
     }
 }
 
+#[allow(dead_code)]
 async fn estimate_hashrate(mining_type: &str, threads: u32) -> f64 {
     // Estimate hashrate based on CPU performance and algorithm
     let mut sys = System::new_all();
     sys.refresh_all();
-    
+
     let cpu_usage = sys.global_cpu_info().cpu_usage();
-    let cpu_frequency = sys.cpus().first()
+    let cpu_frequency = sys
+        .cpus()
+        .first()
         .map(|cpu| cpu.frequency())
         .unwrap_or(2000) as f64; // Default to 2GHz
-    
+
     let base_performance = (cpu_frequency / 1000.0) * (cpu_usage as f64 / 100.0);
-    
+
     match mining_type {
         "whive" => {
             // Yespower is CPU-friendly
             base_performance * threads as f64 * 450.0 // H/s per thread
-        },
+        }
         "bitcoin" => {
             // SHA-256 CPU mining is much slower
             base_performance * threads as f64 * 25.0 // H/s per thread
-        },
+        }
         _ => base_performance * threads as f64 * 100.0,
     }
 }
 
 async fn detect_gpu_devices() -> Result<Vec<GpuDevice>, AppError> {
     let mut devices = Vec::new();
-    
+
     // NVIDIA GPU detection
     if let Ok(output) = std::process::Command::new("nvidia-smi")
-        .args(&["--query-gpu=name,memory.total,driver_version,compute_capability", "--format=csv,noheader,nounits"])
+        .args([
+            "--query-gpu=name,memory.total,driver_version,compute_capability",
+            "--format=csv,noheader,nounits",
+        ])
         .output()
     {
         if output.status.success() {
@@ -283,10 +296,10 @@ async fn detect_gpu_devices() -> Result<Vec<GpuDevice>, AppError> {
             }
         }
     }
-    
+
     // AMD GPU detection
     if let Ok(output) = std::process::Command::new("rocm-smi")
-        .args(&["--showproductname", "--showmeminfo", "vram", "--json"])
+        .args(["--showproductname", "--showmeminfo", "vram", "--json"])
         .output()
     {
         if output.status.success() {
@@ -304,7 +317,7 @@ async fn detect_gpu_devices() -> Result<Vec<GpuDevice>, AppError> {
             }
         }
     }
-    
+
     Ok(devices)
 }
 
@@ -312,14 +325,16 @@ async fn benchmark_yespower_cpu(threads: usize) -> Result<f64, AppError> {
     // Estimate Yespower performance based on CPU specs
     let mut sys = System::new_all();
     sys.refresh_all();
-    
-    let cpu_frequency = sys.cpus().first()
+
+    let cpu_frequency = sys
+        .cpus()
+        .first()
         .map(|cpu| cpu.frequency())
         .unwrap_or(2000) as f64;
-    
+
     // Yespower is memory-hard, so consider both frequency and thread count
     let estimated_hashrate = (cpu_frequency / 1000.0) * threads as f64 * 400.0;
-    
+
     Ok(estimated_hashrate)
 }
 
@@ -327,13 +342,15 @@ async fn benchmark_sha256_cpu(threads: usize) -> Result<f64, AppError> {
     // Estimate SHA-256 performance
     let mut sys = System::new_all();
     sys.refresh_all();
-    
-    let cpu_frequency = sys.cpus().first()
+
+    let cpu_frequency = sys
+        .cpus()
+        .first()
         .map(|cpu| cpu.frequency())
         .unwrap_or(2000) as f64;
-    
+
     let estimated_hashrate = (cpu_frequency / 1000.0) * threads as f64 * 20.0;
-    
+
     Ok(estimated_hashrate)
 }
 
@@ -344,11 +361,11 @@ async fn benchmark_gpu_sha256(gpu: &GpuDevice) -> Result<f64, AppError> {
             // Rough estimation based on GPU memory (more memory = more powerful GPU)
             let memory_gb = gpu.memory as f64 / (1024.0 * 1024.0 * 1024.0);
             Ok(memory_gb * 2000.0 * 1000.0) // MH/s
-        },
+        }
         "AMD" => {
             let memory_gb = gpu.memory as f64 / (1024.0 * 1024.0 * 1024.0);
             Ok(memory_gb * 1500.0 * 1000.0) // MH/s
-        },
+        }
         _ => Ok(1000.0 * 1000.0), // 1 GH/s default
     }
-} 
+}

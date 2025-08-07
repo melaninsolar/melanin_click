@@ -24,9 +24,13 @@ tauri-plugin-shell = "2.2"
 tauri-plugin-fs = "2.3"
 tauri-plugin-http = "2.4"
 tauri-plugin-process = "2.2"
+
+# Mobile-specific plugins (when available)
+# tauri-plugin-notification = "2.0"
+# Note: Battery monitoring will be implemented via platform-specific code
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-reqwest = { version = "0.12", features = ["json", "multipart"] }
+reqwest = { version = "0.12", features = ["json", "multipart", "rustls-tls"], default-features = false }
 tokio = { version = "1.0", features = ["full"] }
 tar = "0.4"
 flate2 = "1.0"
@@ -62,4 +66,16 @@ md5 = "0.7"
 hex = "0.4"
 which = "8.0.0"
 lazy_static = "1.4"
+
+# Configuration and logging
+dotenv = "0.15"
+env_logger = "0.11"
+log = "0.4"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-appender = "0.2"
+
+[dev-dependencies]
+tempfile = "3.0"
+tokio-test = "0.4"
 

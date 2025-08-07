@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tokio::sync::Mutex;
 
 // Core error handling
@@ -11,10 +11,16 @@ pub enum AppError {
     Node(String),
     #[error("Validation error: {0}")]
     Validation(String),
+    #[error("Configuration error: {0}")]
+    Config(String),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Process error: {0}")]
     Process(String),
+    #[error("Stratum error: {0}")]
+    Stratum(String),
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
 }
 
 impl Serialize for AppError {
@@ -120,15 +126,33 @@ pub struct NodeStatus {
 }
 
 // Declare modules
+pub mod android_lifecycle;
+pub mod config;
 pub mod core;
+pub mod error_handler;
+pub mod logging;
 pub mod mining;
 pub mod mining_stats;
-pub mod node;
+pub mod mobile;
 pub mod monitoring;
-pub mod validation;
+pub mod node;
+pub mod solo_mining;
+pub mod stratum;
 pub mod utils;
+pub mod validation;
 
 pub fn run() {
+    main()
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+fn main() {
+    // Initialize configuration and logging early
+    config::init_config().expect("Failed to initialize configuration");
+    logging::init_logging().expect("Failed to initialize logging");
+    error_handler::init_error_handler();
+    logging::log_system_startup();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
@@ -136,6 +160,14 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_process::init())
         .manage(AppState::default())
+        .manage(mobile::MobileManager::new())
+        .manage(solo_mining::SoloMiner::new())
+        .manage(android_lifecycle::AndroidLifecycleManager::new())
+        .setup(|_app| {
+            // Perform additional setup here
+            tracing::info!("Tauri application setup complete");
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             // Mining commands
             mining::download_and_install_miners,
@@ -148,7 +180,6 @@ pub fn run() {
             mining::get_mining_status,
             mining::update_mining_config,
             mining::get_mining_pools,
-            
             // Node commands with enhanced functionality
             node::download_and_install_bitcoin,
             node::download_and_install_whive,
@@ -157,23 +188,44 @@ pub fn run() {
             node::run_whive_node,
             node::stop_node,
             node::get_node_status,
-            
             // Monitoring commands
             monitoring::get_real_mining_stats,
             monitoring::get_system_info,
             monitoring::get_hardware_info,
             monitoring::benchmark_hardware,
-            
             // Validation commands
             validation::validate_bitcoin_address,
             validation::validate_whive_address,
             validation::verify_file_hash,
-            
             // Utility commands
             utils::get_download_progress,
             utils::check_file_exists,
             utils::create_directory,
             utils::get_file_size,
+            // Error handling commands
+            error_handler::get_error_history,
+            error_handler::clear_error_history,
+            error_handler::get_error_statistics,
+            // Mobile commands
+            mobile::get_battery_status,
+            mobile::update_mobile_settings,
+            mobile::get_mobile_settings,
+            mobile::is_mobile_mining_allowed,
+            // Solo mining commands
+            solo_mining::configure_solo_mining,
+            solo_mining::start_solo_mining,
+            solo_mining::stop_solo_mining,
+            solo_mining::get_solo_mining_stats,
+            solo_mining::get_solo_block_template,
+            // Android lifecycle commands
+            android_lifecycle::android_app_resume,
+            android_lifecycle::android_app_pause,
+            android_lifecycle::start_foreground_mining_service,
+            android_lifecycle::stop_foreground_mining_service,
+            android_lifecycle::request_disable_battery_optimization,
+            android_lifecycle::set_background_mining_enabled,
+            android_lifecycle::get_android_lifecycle_state,
+            android_lifecycle::update_mining_notification,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

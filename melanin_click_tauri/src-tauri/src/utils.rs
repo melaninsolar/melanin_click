@@ -1,6 +1,6 @@
+use crate::{AppError, AppState, DownloadProgress};
 use std::path::Path;
 use tauri::State;
-use crate::{AppState, AppError, DownloadProgress};
 
 #[tauri::command]
 pub async fn get_download_progress(
@@ -26,4 +26,4 @@ pub async fn create_directory(path: String) -> Result<String, AppError> {
 pub async fn get_file_size(path: String) -> Result<u64, AppError> {
     let metadata = std::fs::metadata(&path)?;
     Ok(metadata.len())
-} 
+}

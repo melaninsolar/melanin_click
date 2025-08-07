@@ -1,2 +1,6 @@
 .DS_Store
 melanin_click.log
+.env
+*.env
+.env.local
+.env.*.local

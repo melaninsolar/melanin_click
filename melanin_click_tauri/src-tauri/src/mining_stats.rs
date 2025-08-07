@@ -1,10 +1,10 @@
+use crate::AppError;
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::Mutex;
-use tokio::process::Child;
 use tokio::io::{AsyncBufReadExt, BufReader};
-use chrono::{DateTime, Utc};
-use crate::AppError;
+use tokio::process::Child;
+use tokio::sync::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct RealMiningStats {
@@ -44,6 +44,12 @@ pub struct MiningStatsCollector {
     processes: Arc<Mutex<HashMap<String, Child>>>,
 }
 
+impl Default for MiningStatsCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MiningStatsCollector {
     pub fn new() -> Self {
         Self {
@@ -78,14 +84,16 @@ impl MiningStatsCollector {
         // Spawn task to monitor output
         let stats_clone = Arc::clone(&stats);
         let mining_type_clone = mining_type.clone();
-        
+
         tokio::spawn(async move {
             if let Some(stdout) = stdout {
                 let reader = BufReader::new(stdout);
                 let mut lines = reader.lines();
 
                 while let Ok(Some(line)) = lines.next_line().await {
-                    if let Err(e) = Self::parse_mining_output(&stats_clone, &mining_type_clone, &line).await {
+                    if let Err(e) =
+                        Self::parse_mining_output(&stats_clone, &mining_type_clone, &line).await
+                    {
                         eprintln!("Error parsing mining output: {}", e);
                     }
                 }
@@ -101,7 +109,8 @@ impl MiningStatsCollector {
         line: &str,
     ) -> Result<(), AppError> {
         let mut stats_map = stats.lock().await;
-        let current_stats = stats_map.entry(mining_type.to_string())
+        let current_stats = stats_map
+            .entry(mining_type.to_string())
             .or_insert_with(RealMiningStats::default);
 
         // Parse different mining output formats
@@ -251,11 +260,11 @@ impl MiningStatsCollector {
                     // Estimate based on hashrate and current Whive difficulty/price
                     let blocks_per_day = (stats.hashrate * 86400.0) / 1_000_000.0; // Very rough estimate
                     blocks_per_day * 0.001 // Placeholder
-                },
+                }
                 "bitcoin" => {
                     // Bitcoin CPU mining earnings are essentially zero
                     (stats.hashrate * 86400.0) / 1_000_000_000_000.0 * 0.000001 // Extremely small
-                },
+                }
                 _ => 0.0,
             };
             stats.estimated_earnings = daily_earnings;
@@ -266,4 +275,4 @@ impl MiningStatsCollector {
 // Global stats collector instance
 lazy_static::lazy_static! {
     pub static ref MINING_STATS: MiningStatsCollector = MiningStatsCollector::new();
-} 
+}
