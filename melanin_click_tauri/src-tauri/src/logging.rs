@@ -227,15 +227,15 @@ pub fn log_system_info() {
     tracing::info!(
         component = "system",
         event = "diagnostics",
-        rust_version = env!("RUSTC_VERSION", "unknown"),
+        rust_version = "1.88.0", // Static version for now
         target_triple = env::var("TARGET").unwrap_or_else(|_| "unknown".to_string()),
         debug_mode = cfg!(debug_assertions),
         "System diagnostics"
     );
     
     // Log environment variables relevant to display
-    if let Ok(display) = env::var("DISPLAY") {
-        tracing::info!(component = "system", display = %display, "Display environment detected");
+    if let Ok(display_var) = env::var("DISPLAY") {
+        tracing::info!(component = "system", display = %display_var, "Display environment detected");
     }
     
     #[cfg(target_os = "macos")]
